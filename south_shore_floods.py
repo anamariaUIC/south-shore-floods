@@ -323,6 +323,112 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
+# ── Map section ────────────────────────────────────────────────────────────────
+st.markdown('<div class="content-section" id="map">', unsafe_allow_html=True)
+st.markdown('<div class="section-head">311 Flooding Complaints — South Side Chicago</div>', unsafe_allow_html=True)
+st.markdown("""
+<div class="section-sub">
+  Live data from the <a href="https://data.cityofchicago.org/Service-Requests/Flooding-Complaints-to-311/qrmr-m89j"
+  target="_blank" style="color:#0a2240">Chicago Data Portal</a>.
+  Each dot is a real 311 flooding complaint filed by a resident.
+  Red = basement flooding · Blue = street flooding · Orange = other.
+  The <strong>yellow zone</strong> marks the proposed breakwater project area (71st–75th St lakefront).
+</div>
+""", unsafe_allow_html=True)
+
+try:
+    import folium
+    from streamlit_folium import st_folium
+
+    m = folium.Map(
+        location=[41.762, -87.572],
+        zoom_start=13,
+        tiles="CartoDB positron",
+    )
+
+    # Breakwater project zone (71st–75th St, lakefront)
+    folium.Rectangle(
+        bounds=[[41.7655, -87.5600], [41.7490, -87.5480]],
+        color="#e67e22",
+        fill=True,
+        fill_color="#f39c12",
+        fill_opacity=0.25,
+        weight=2,
+        tooltip="⚠️ Proposed $5M Breakwater Project Zone (71st–75th St)",
+    ).add_to(m)
+
+    folium.Marker(
+        location=[41.757, -87.554],
+        tooltip="⚠️ Proposed Breakwater Zone\n71st–75th Street Lakefront\n$5 million · No environmental review",
+        icon=folium.Icon(color="orange", icon="warning-sign", prefix="glyphicon"),
+    ).add_to(m)
+
+    # Plot 311 complaints
+    if df is not None and not df.empty:
+        def get_color(flood_type):
+            ft = str(flood_type).lower()
+            if "basement" in ft:
+                return "#c0392b"
+            if "street" in ft:
+                return "#1a5cb8"
+            return "#e67e22"
+
+        sample = df.sample(min(len(df), 3000), random_state=42) if len(df) > 3000 else df
+
+        for _, row in sample.iterrows():
+            try:
+                lat, lon = float(row["lat"]), float(row["lon"])
+                ft = str(row.get("flood_type", "Flooding"))
+                addr = str(row.get("addr", ""))
+                date_str = str(row.get("report_date", ""))[:10] if "report_date" in row else ""
+                color = get_color(ft)
+                is_ss = row.get("ca") == 43
+
+                folium.CircleMarker(
+                    location=[lat, lon],
+                    radius=5 if is_ss else 3.5,
+                    color=color,
+                    fill=True,
+                    fill_color=color,
+                    fill_opacity=0.75 if is_ss else 0.5,
+                    weight=1.5 if is_ss else 0.8,
+                    tooltip=f"{'🔴 SOUTH SHORE | ' if is_ss else ''}{ft}<br>{addr}<br>{date_str}",
+                ).add_to(m)
+            except Exception:
+                continue
+
+    # Legend
+    legend_html = """
+    <div style="position:fixed;bottom:40px;left:60px;z-index:1000;background:#fff;
+    padding:12px 16px;border-radius:5px;border:1px solid #ccc;font-family:Arial,sans-serif;
+    font-size:12px;box-shadow:2px 2px 6px rgba(0,0,0,.2)">
+      <strong style="color:#0a2240">311 Flooding Complaints</strong><br><br>
+      <span style="background:#c0392b;color:#fff;padding:1px 8px;border-radius:10px">●</span>
+      Basement flooding<br>
+      <span style="background:#1a5cb8;color:#fff;padding:1px 8px;border-radius:10px">●</span>
+      Street flooding<br>
+      <span style="background:#e67e22;color:#fff;padding:1px 8px;border-radius:10px">●</span>
+      Other flooding<br>
+      <span style="background:#f39c12;padding:1px 8px;border-radius:10px">▪</span>
+      Proposed breakwater zone<br>
+      <em style="color:#888;font-size:10px">Larger dots = South Shore</em>
+    </div>
+    """
+    m.get_root().html.add_child(folium.Element(legend_html))
+
+    st_folium(m, width="100%", height=520, returned_objects=[])
+
+except ImportError:
+    st.info(
+        "Map requires `folium` and `streamlit-folium`. "
+        "Add them to requirements.txt and redeploy.",
+        icon="🗺️",
+    )
+    if df is not None and not df.empty:
+        st.markdown(f"**{len(df):,} flooding complaints** loaded from Chicago 311 for the South Side.")
+
+st.markdown('</div>', unsafe_allow_html=True)
+
 # ── About ──────────────────────────────────────────────────────────────────────
 st.markdown('<div class="content-section" id="about">', unsafe_allow_html=True)
 st.markdown('<div class="section-head">About This Initiative</div>', unsafe_allow_html=True)
@@ -344,7 +450,7 @@ with col1:
     </p>
     <p style="font-size:14px;line-height:1.7;color:#333;font-family:Arial,sans-serif">
     <strong>This page exists to document what residents are actually experiencing.</strong>
-    The 311 map below shows officially filed complaints. Your report here adds the human layer —
+    The 311 map above shows officially filed complaints. Your reports below add the human layer —
     the photos, the damage, the mold, the displacement — that official data doesn't capture.
     </p>
     <p style="font-size:14px;line-height:1.7;color:#333;font-family:Arial,sans-serif">
@@ -525,112 +631,6 @@ with st.form("flood_report", clear_on_submit=True):
             st.info("Your email client will open pre-filled. Hit Send and attach any photos.", icon="📬")
 
     st.markdown('</div>', unsafe_allow_html=True)
-st.markdown('</div>', unsafe_allow_html=True)
-
-# ── Map section ────────────────────────────────────────────────────────────────
-st.markdown('<div class="content-section" id="map">', unsafe_allow_html=True)
-st.markdown('<div class="section-head">311 Flooding Complaints — South Side Chicago</div>', unsafe_allow_html=True)
-st.markdown("""
-<div class="section-sub">
-  Live data from the <a href="https://data.cityofchicago.org/Service-Requests/Flooding-Complaints-to-311/qrmr-m89j"
-  target="_blank" style="color:#0a2240">Chicago Data Portal</a>.
-  Each dot is a real 311 flooding complaint filed by a resident.
-  Red = basement flooding · Blue = street flooding · Orange = other.
-  The <strong>yellow zone</strong> marks the proposed breakwater project area (71st–75th St lakefront).
-</div>
-""", unsafe_allow_html=True)
-
-try:
-    import folium
-    from streamlit_folium import st_folium
-
-    m = folium.Map(
-        location=[41.762, -87.572],
-        zoom_start=13,
-        tiles="CartoDB positron",
-    )
-
-    # Breakwater project zone (71st–75th St, lakefront)
-    folium.Rectangle(
-        bounds=[[41.7655, -87.5600], [41.7490, -87.5480]],
-        color="#e67e22",
-        fill=True,
-        fill_color="#f39c12",
-        fill_opacity=0.25,
-        weight=2,
-        tooltip="⚠️ Proposed $5M Breakwater Project Zone (71st–75th St)",
-    ).add_to(m)
-
-    folium.Marker(
-        location=[41.757, -87.554],
-        tooltip="⚠️ Proposed Breakwater Zone\n71st–75th Street Lakefront\n$5 million · No environmental review",
-        icon=folium.Icon(color="orange", icon="warning-sign", prefix="glyphicon"),
-    ).add_to(m)
-
-    # Plot 311 complaints
-    if df is not None and not df.empty:
-        def get_color(flood_type):
-            ft = str(flood_type).lower()
-            if "basement" in ft:
-                return "#c0392b"
-            if "street" in ft:
-                return "#1a5cb8"
-            return "#e67e22"
-
-        sample = df.sample(min(len(df), 3000), random_state=42) if len(df) > 3000 else df
-
-        for _, row in sample.iterrows():
-            try:
-                lat, lon = float(row["lat"]), float(row["lon"])
-                ft = str(row.get("flood_type", "Flooding"))
-                addr = str(row.get("addr", ""))
-                date_str = str(row.get("report_date", ""))[:10] if "report_date" in row else ""
-                color = get_color(ft)
-                is_ss = row.get("ca") == 43
-
-                folium.CircleMarker(
-                    location=[lat, lon],
-                    radius=5 if is_ss else 3.5,
-                    color=color,
-                    fill=True,
-                    fill_color=color,
-                    fill_opacity=0.75 if is_ss else 0.5,
-                    weight=1.5 if is_ss else 0.8,
-                    tooltip=f"{'🔴 SOUTH SHORE | ' if is_ss else ''}{ft}<br>{addr}<br>{date_str}",
-                ).add_to(m)
-            except Exception:
-                continue
-
-    # Legend
-    legend_html = """
-    <div style="position:fixed;bottom:40px;left:60px;z-index:1000;background:#fff;
-    padding:12px 16px;border-radius:5px;border:1px solid #ccc;font-family:Arial,sans-serif;
-    font-size:12px;box-shadow:2px 2px 6px rgba(0,0,0,.2)">
-      <strong style="color:#0a2240">311 Flooding Complaints</strong><br><br>
-      <span style="background:#c0392b;color:#fff;padding:1px 8px;border-radius:10px">●</span>
-      Basement flooding<br>
-      <span style="background:#1a5cb8;color:#fff;padding:1px 8px;border-radius:10px">●</span>
-      Street flooding<br>
-      <span style="background:#e67e22;color:#fff;padding:1px 8px;border-radius:10px">●</span>
-      Other flooding<br>
-      <span style="background:#f39c12;padding:1px 8px;border-radius:10px">▪</span>
-      Proposed breakwater zone<br>
-      <em style="color:#888;font-size:10px">Larger dots = South Shore</em>
-    </div>
-    """
-    m.get_root().html.add_child(folium.Element(legend_html))
-
-    st_folium(m, width="100%", height=520, returned_objects=[])
-
-except ImportError:
-    st.info(
-        "Map requires `folium` and `streamlit-folium`. "
-        "Add them to requirements.txt and redeploy.",
-        icon="🗺️",
-    )
-    if df is not None and not df.empty:
-        st.markdown(f"**{len(df):,} flooding complaints** loaded from Chicago 311 for the South Side.")
-
 st.markdown('</div>', unsafe_allow_html=True)
 
 # ── Resources ──────────────────────────────────────────────────────────────────
