@@ -293,22 +293,27 @@ if df is not None and not df.empty:
 else:
     total, ss_count, basement, street = "—", "—", "—", "—"
 
+fmt_total    = f"{total:,}"    if isinstance(total,    int) else str(total)
+fmt_ss       = f"{ss_count:,}" if isinstance(ss_count, int) else str(ss_count)
+fmt_basement = f"{basement:,}" if isinstance(basement,  int) else str(basement)
+fmt_street   = f"{street:,}"   if isinstance(street,    int) else str(street)
+
 st.markdown(f"""
 <div class="stats-strip">
   <div class="stat-item">
-    <span class="stat-number">{total:,}" if isinstance(total,int) else total}</span>
+    <span class="stat-number">{fmt_total}</span>
     <span class="stat-label">311 Flooding Complaints · South Side</span>
   </div>
   <div class="stat-item">
-    <span class="stat-number">{ss_count:,}" if isinstance(ss_count,int) else ss_count}</span>
+    <span class="stat-number">{fmt_ss}</span>
     <span class="stat-label">In South Shore Specifically</span>
   </div>
   <div class="stat-item">
-    <span class="stat-number">{basement:,}" if isinstance(basement,int) else basement}</span>
+    <span class="stat-number">{fmt_basement}</span>
     <span class="stat-label">Basement Flooding Reports</span>
   </div>
   <div class="stat-item">
-    <span class="stat-number">{street:,}" if isinstance(street,int) else street}</span>
+    <span class="stat-number">{fmt_street}</span>
     <span class="stat-label">Street Flooding Reports</span>
   </div>
   <div class="stat-item">
