@@ -173,63 +173,57 @@ except Exception:
 # ── Live 311 data fetch ────────────────────────────────────────────────────────
 # South Side community areas: 43=South Shore, 42=Woodlawn, 44=Chatham,
 # 69=Greater Grand Crossing, 46=South Chicago, 48=Calumet Heights, 71=Auburn Gresham
-SOUTH_SIDE_AREAS = [43, 42, 44, 69, 46, 48, 71, 68, 45]
-SOUTH_SHORE_AREA = 43
+SOUTH_SHORE_AREA_NUM = 43  # community area number for South Shore
 
 @st.cache_data(ttl=3600, show_spinner=False)
 def fetch_311_flooding():
-    """Pull 311 flooding complaints from Chicago Data Portal (Socrata API)."""
-    area_filter = " OR ".join(
-        [f"community_area='{a}'" for a in SOUTH_SIDE_AREAS]
-    )
-    # Dataset: Flooding Complaints to 311 (qrmr-m89j)
+    """
+    Pull 311 flooding complaints from Chicago Data Portal.
+    Uses lat/lon bounding box for South Side — avoids community_area
+    field inconsistencies across dataset versions.
+    South Side bounding box: lat 41.70–41.80, lon -87.65 to -87.52
+    """
+    # Primary dataset: Flooding Complaints to 311
+    # Filter by geographic bounding box covering South Shore + surrounding South Side
     url = (
         "https://data.cityofchicago.org/resource/qrmr-m89j.json"
-        f"?$where=({area_filter})"
+        "?$where=latitude > 41.70 AND latitude < 41.82"
+        " AND longitude > -87.65 AND longitude < -87.52"
         "&$limit=10000"
         "&$order=creation_date DESC"
     )
     try:
-        r = requests.get(url, timeout=15)
+        r = requests.get(url, timeout=20)
         if r.status_code == 200:
-            df = pd.DataFrame(r.json())
-            if df.empty:
-                return None, "empty"
-            return df, "ok"
-        return None, f"HTTP {r.status_code}"
-    except Exception as e:
-        return None, str(e)
+            data = r.json()
+            if data:
+                return pd.DataFrame(data), "ok"
+    except Exception:
+        pass
 
-@st.cache_data(ttl=3600, show_spinner=False)
-def fetch_311_general_flooding():
-    """Fallback: pull from the main 311 dataset filtered to flood types."""
-    area_filter = " OR ".join(
-        [f"community_area='{a}'" for a in SOUTH_SIDE_AREAS]
-    )
-    url = (
+    # Fallback: main 311 service requests dataset, flood types only
+    url2 = (
         "https://data.cityofchicago.org/resource/v6vf-nfxy.json"
-        "?$where=("
-        "(sr_type='Water on Street - Observed' OR sr_type='Water in Basement' "
-        "OR sr_type='Water on Street' OR sr_type like '%flood%' OR sr_type like '%Flood%' "
-        "OR sr_type like '%Water in Basement%')"
-        f" AND ({area_filter}))"
+        "?$where=(sr_type='Water on Street' OR sr_type='Water in Basement'"
+        " OR sr_type='Water on Street - Observed')"
+        " AND latitude > 41.70 AND latitude < 41.82"
+        " AND longitude > -87.65 AND longitude < -87.52"
         "&$limit=10000"
         "&$order=created_date DESC"
     )
     try:
-        r = requests.get(url, timeout=15)
-        if r.status_code == 200:
-            df = pd.DataFrame(r.json())
-            return df if not df.empty else None
-        return None
+        r2 = requests.get(url2, timeout=20)
+        if r2.status_code == 200:
+            data2 = r2.json()
+            if data2:
+                return pd.DataFrame(data2), "fallback"
     except Exception:
-        return None
+        pass
+
+    return None, "error"
 
 with st.spinner("Loading 311 flooding data from Chicago Data Portal..."):
     df_raw, status = fetch_311_flooding()
-    if df_raw is None or df_raw.empty:
-        df_raw = fetch_311_general_flooding()
-        status = "fallback"
 
 # ── Process dataframe ──────────────────────────────────────────────────────────
 def process_df(df):
@@ -350,13 +344,8 @@ of residents — not concrete in the lake.
 </p>
 """, unsafe_allow_html=True)
 
-# Compact horizontal row: flyer image left, petition box right
-img_col, pet_col = st.columns([1.4, 1])
-with img_col:
-    try:
-        st.image("flyer.png", use_container_width=True)
-    except Exception:
-        pass
+# Petition box — full width now that flyer is removed
+pet_col, _ = st.columns([1, 1])
 with pet_col:
     st.markdown("""
     <div style="background:#f8f0f0;border:1px solid #e0b0b0;border-radius:3px;
