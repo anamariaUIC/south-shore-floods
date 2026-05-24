@@ -276,8 +276,6 @@ def process_df(df):
             break
     if "addr" not in df.columns:
         df["addr"] = "Address not available"
-    if "ca" not in df.columns and "ca_num" in df.columns:
-        df["ca"] = df["ca_num"]
 
     df = df.dropna(subset=["lat", "lon"])
     df = df[(df["lat"] > 41.5) & (df["lat"] < 42.1)]
@@ -346,7 +344,7 @@ with col1:
     </p>
     <p style="font-size:14px;line-height:1.7;color:#333;font-family:Arial,sans-serif">
     <strong>This page exists to document what residents are actually experiencing.</strong>
-    The 311 map below shows officially filed complaints. Your report above adds the human layer —
+    The 311 map below shows officially filed complaints. Your report here adds the human layer —
     the photos, the damage, the mold, the displacement — that official data doesn't capture.
     </p>
     <p style="font-size:14px;line-height:1.7;color:#333;font-family:Arial,sans-serif">
