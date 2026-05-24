@@ -9,6 +9,9 @@ import streamlit as st
 import urllib.parse
 import requests
 import pandas as pd
+import folium
+from folium.plugins import MarkerCluster, HeatMap
+from streamlit_folium import st_folium
 from datetime import date
 
 st.set_page_config(
@@ -16,6 +19,15 @@ st.set_page_config(
     page_icon="🌊",
     layout="wide",
 )
+
+BURGUNDY = "#6D071A"
+NAVY = "#0B1F3A"
+ORANGE = "#E67E22"
+
+DATASET_URL = "https://data.cityofchicago.org/resource/qrmr-m89j.json"
+COMMUNITY_AREAS_GEOJSON = "https://data.cityofchicago.org/resource/igwz-8jzy.geojson"
+
+SOUTH_SHORE_CA = 43
 
 st.markdown("""
 <style>
@@ -87,15 +99,6 @@ html, body, [class*="css"] {
     font-size: 11px; color: #a8c8e8; font-family: Arial, sans-serif;
     text-transform: uppercase; letter-spacing: .04em;
 }
-.map-legend {
-    display: flex; gap: 20px; align-items: center;
-    font-family: Arial, sans-serif; font-size: 12px;
-    color: #333; margin-bottom: 10px; flex-wrap: wrap;
-}
-.legend-dot {
-    width: 12px; height: 12px; border-radius: 50%;
-    display: inline-block; margin-right: 5px;
-}
 .concerns-grid {
     display: grid; grid-template-columns: repeat(3, 1fr);
     gap: 14px; margin-top: 14px;
@@ -128,7 +131,6 @@ html, body, [class*="css"] {
 }
 .page-footer a { color: #8ab0d0; }
 .page-footer strong { color: #fff; }
-div[data-testid="stVerticalBlock"] > div { gap: 0.25rem; }
 .stButton button {
     background: #c0392b !important; color: #fff !important;
     border: none !important; border-radius: 3px !important;
@@ -138,6 +140,7 @@ div[data-testid="stVerticalBlock"] > div { gap: 0.25rem; }
 }
 </style>
 """, unsafe_allow_html=True)
+
 
 # ── Nav ────────────────────────────────────────────────────────────────────────
 st.markdown("""
@@ -149,6 +152,7 @@ st.markdown("""
   <a href="http://bit.ly/4ukCmjg" target="_blank">✍️ Sign the Petition</a>
 </div>
 """, unsafe_allow_html=True)
+
 
 # ── Hero ───────────────────────────────────────────────────────────────────────
 st.markdown("""
@@ -164,145 +168,109 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
+
 # ── Hero image ─────────────────────────────────────────────────────────────────
 try:
     st.image("breakwaterinfo.png", use_container_width=True)
 except Exception:
     pass
 
-# ── Live 311 data fetch ────────────────────────────────────────────────────────
-# South Side community areas: 43=South Shore, 42=Woodlawn, 44=Chatham,
-# 69=Greater Grand Crossing, 46=South Chicago, 48=Calumet Heights, 71=Auburn Gresham
-SOUTH_SIDE_AREAS = [43, 42, 44, 69, 46, 48, 71, 68, 45]
-SOUTH_SHORE_AREA = 43
 
+# ── Live 311 flooding data ─────────────────────────────────────────────────────
 @st.cache_data(ttl=3600, show_spinner=False)
-def fetch_311_flooding():
-    """Pull 311 flooding complaints from Chicago Data Portal (Socrata API)."""
-    area_filter = " OR ".join(
-        [f"community_area='{a}'" for a in SOUTH_SIDE_AREAS]
-    )
-    # Dataset: Flooding Complaints to 311 (qrmr-m89j)
-    url = (
-        "https://data.cityofchicago.org/resource/qrmr-m89j.json"
-        f"?$where=({area_filter})"
-        "&$limit=10000"
-        "&$order=creation_date DESC"
-    )
-    try:
-        r = requests.get(url, timeout=15)
-        if r.status_code == 200:
-            df = pd.DataFrame(r.json())
-            if df.empty:
-                return None, "empty"
-            return df, "ok"
-        return None, f"HTTP {r.status_code}"
-    except Exception as e:
-        return None, str(e)
+def fetch_311_flooding(limit_per_page=50000, max_records=250000):
+    all_rows = []
+    offset = 0
 
-@st.cache_data(ttl=3600, show_spinner=False)
-def fetch_311_general_flooding():
-    """Fallback: pull from the main 311 dataset filtered to flood types."""
-    area_filter = " OR ".join(
-        [f"community_area='{a}'" for a in SOUTH_SIDE_AREAS]
+    where_clause = (
+        "sr_type in ('Water in Basement Complaint','Water On Street Complaint') "
+        "AND latitude IS NOT NULL "
+        "AND longitude IS NOT NULL"
     )
-    url = (
-        "https://data.cityofchicago.org/resource/v6vf-nfxy.json"
-        "?$where=("
-        "(sr_type='Water on Street - Observed' OR sr_type='Water in Basement' "
-        "OR sr_type='Water on Street' OR sr_type like '%flood%' OR sr_type like '%Flood%' "
-        "OR sr_type like '%Water in Basement%')"
-        f" AND ({area_filter}))"
-        "&$limit=10000"
-        "&$order=created_date DESC"
-    )
-    try:
-        r = requests.get(url, timeout=15)
-        if r.status_code == 200:
-            df = pd.DataFrame(r.json())
-            return df if not df.empty else None
-        return None
-    except Exception:
-        return None
 
-with st.spinner("Loading 311 flooding data from Chicago Data Portal..."):
-    df_raw, status = fetch_311_flooding()
-    if df_raw is None or df_raw.empty:
-        df_raw = fetch_311_general_flooding()
-        status = "fallback"
+    while offset < max_records:
+        params = {
+            "$limit": limit_per_page,
+            "$offset": offset,
+            "$order": "created_date DESC",
+            "$where": where_clause,
+        }
 
-# ── Process dataframe ──────────────────────────────────────────────────────────
-def process_df(df):
-    if df is None or df.empty:
-        return None
+        r = requests.get(DATASET_URL, params=params, timeout=30)
+        r.raise_for_status()
 
-    # Normalise column names (different endpoints use different names)
+        batch = r.json()
+        if not batch:
+            break
+
+        all_rows.extend(batch)
+
+        if len(batch) < limit_per_page:
+            break
+
+        offset += limit_per_page
+
+    df = pd.DataFrame(all_rows)
+
+    if df.empty:
+        return df
+
     df.columns = [c.lower() for c in df.columns]
 
-    # Latitude / longitude
-    for lat_col in ["latitude", "lat", "y_coordinate"]:
-        if lat_col in df.columns:
-            df["lat"] = pd.to_numeric(df[lat_col], errors="coerce")
-            break
-    for lon_col in ["longitude", "lon", "x_coordinate"]:
-        if lon_col in df.columns:
-            df["lon"] = pd.to_numeric(df[lon_col], errors="coerce")
-            break
+    df["lat"] = pd.to_numeric(df["latitude"], errors="coerce")
+    df["lon"] = pd.to_numeric(df["longitude"], errors="coerce")
+    df["ca"] = pd.to_numeric(df.get("community_area"), errors="coerce")
+    df["report_date"] = pd.to_datetime(df.get("created_date"), errors="coerce")
+    df["flood_type"] = df["sr_type"]
 
-    # Community area
-    for ca_col in ["community_area", "community_area_number"]:
-        if ca_col in df.columns:
-            df["ca"] = pd.to_numeric(df[ca_col], errors="coerce")
-            break
-
-    # Type
-    for type_col in ["type_of_service_request", "sr_type", "service_request_type", "type"]:
-        if type_col in df.columns:
-            df["flood_type"] = df[type_col]
-            break
-    if "flood_type" not in df.columns:
-        df["flood_type"] = "Flooding"
-
-    # Date
-    for date_col in ["creation_date", "created_date", "date", "open_dt"]:
-        if date_col in df.columns:
-            df["report_date"] = pd.to_datetime(df[date_col], errors="coerce")
-            break
-
-    # Address
-    for addr_col in ["street_address", "address", "location"]:
-        if addr_col in df.columns:
-            df["addr"] = df[addr_col]
-            break
-    if "addr" not in df.columns:
+    if "street_address" in df.columns:
+        df["addr"] = df["street_address"]
+    else:
         df["addr"] = "Address not available"
 
     df = df.dropna(subset=["lat", "lon"])
     df = df[(df["lat"] > 41.5) & (df["lat"] < 42.1)]
     df = df[(df["lon"] > -88.0) & (df["lon"] < -87.4)]
+
     return df
 
-df = process_df(df_raw)
+
+def flood_color(flood_type):
+    ft = str(flood_type).lower()
+    if "basement" in ft:
+        return BURGUNDY
+    if "street" in ft:
+        return NAVY
+    return ORANGE
+
+
+with st.spinner("Loading live 311 flooding data from Chicago Data Portal..."):
+    try:
+        df = fetch_311_flooding()
+    except Exception as e:
+        st.error(f"Could not load Chicago 311 flooding data: {e}")
+        df = pd.DataFrame()
+
 
 # ── Stats strip ────────────────────────────────────────────────────────────────
 if df is not None and not df.empty:
     total = len(df)
-    ss_count = len(df[df["ca"] == 43]) if "ca" in df.columns else "—"
-    basement = len(df[df["flood_type"].str.contains("Basement|basement", na=False)])
-    street   = len(df[df["flood_type"].str.contains("Street|street", na=False)])
+    ss_count = int((df["ca"] == SOUTH_SHORE_CA).sum())
+    basement = int(df["flood_type"].str.contains("Basement", case=False, na=False).sum())
+    street = int(df["flood_type"].str.contains("Street", case=False, na=False).sum())
 else:
     total, ss_count, basement, street = "—", "—", "—", "—"
 
-fmt_total    = f"{total:,}"    if isinstance(total,    int) else str(total)
-fmt_ss       = f"{ss_count:,}" if isinstance(ss_count, int) else str(ss_count)
-fmt_basement = f"{basement:,}" if isinstance(basement,  int) else str(basement)
-fmt_street   = f"{street:,}"   if isinstance(street,    int) else str(street)
+fmt_total = f"{total:,}" if isinstance(total, int) else str(total)
+fmt_ss = f"{ss_count:,}" if isinstance(ss_count, int) else str(ss_count)
+fmt_basement = f"{basement:,}" if isinstance(basement, int) else str(basement)
+fmt_street = f"{street:,}" if isinstance(street, int) else str(street)
 
 st.markdown(f"""
 <div class="stats-strip">
   <div class="stat-item">
     <span class="stat-number">{fmt_total}</span>
-    <span class="stat-label">311 Flooding Complaints · South Side</span>
+    <span class="stat-label">Chicago 311 Flooding Complaints</span>
   </div>
   <div class="stat-item">
     <span class="stat-number">{fmt_ss}</span>
@@ -323,138 +291,127 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
+
 # ── Map section ────────────────────────────────────────────────────────────────
 st.markdown('<div class="content-section" id="map">', unsafe_allow_html=True)
-st.markdown('<div class="section-head">311 Water in Basement Complaints — South Side Chicago</div>', unsafe_allow_html=True)
-st.markdown("""
+st.markdown('<div class="section-head">311 Flooding Complaints — Chicago</div>', unsafe_allow_html=True)
+st.markdown(f"""
 <div class="section-sub">
   Live data from the <a href="https://data.cityofchicago.org/Service-Requests/Flooding-Complaints-to-311/qrmr-m89j"
   target="_blank" style="color:#0a2240">Chicago Data Portal</a>.
-  Each dot is a real <strong>basement flooding complaint</strong> ("Water in Basement") filed with Chicago 311 by a resident.
-  This is where sewers are backing up into people's homes.
-  The <strong>orange zone</strong> marks the proposed $5M breakwater project area (71st–75th St lakefront) —
-  a stretch of lakefront, not a single flooded basement.
+  <strong style="color:{BURGUNDY}">Burgundy</strong> = basement flooding ·
+  <strong style="color:{NAVY}">Navy</strong> = street flooding.
+  The orange zone marks the proposed breakwater project area between 71st and 75th Street.
 </div>
 """, unsafe_allow_html=True)
 
-try:
-    import folium
-    from streamlit_folium import st_folium
-
+if df is None or df.empty:
+    st.warning("No 311 flooding records loaded.")
+else:
     m = folium.Map(
         location=[41.762, -87.572],
         zoom_start=13,
         tiles="CartoDB positron",
+        control_scale=True,
     )
 
-    # Breakwater project zone (71st–75th St, lakefront)
+    folium.GeoJson(
+        COMMUNITY_AREAS_GEOJSON,
+        name="Chicago Community Areas",
+        style_function=lambda feature: {
+            "fillOpacity": 0,
+            "color": "#444444",
+            "weight": 1,
+        },
+        tooltip=folium.GeoJsonTooltip(
+            fields=["community"],
+            aliases=["Community Area:"],
+            sticky=False,
+        ),
+    ).add_to(m)
+
     folium.Rectangle(
         bounds=[[41.7655, -87.5600], [41.7490, -87.5480]],
-        color="#e67e22",
+        color=ORANGE,
         fill=True,
-        fill_color="#f39c12",
-        fill_opacity=0.25,
-        weight=2,
-        tooltip="⚠️ Proposed $5M Breakwater Project Zone (71st–75th St)",
+        fill_color=ORANGE,
+        fill_opacity=0.22,
+        weight=3,
+        tooltip="Proposed $5M breakwater project zone: 71st–75th Street lakefront",
     ).add_to(m)
 
-    folium.Marker(
-        location=[41.757, -87.554],
-        tooltip="⚠️ Proposed Breakwater Zone\n71st–75th Street Lakefront\n$5 million · No environmental review",
-        icon=folium.Icon(color="orange", icon="warning-sign", prefix="glyphicon"),
+    basement_points = df[
+        df["flood_type"].str.contains("Basement", case=False, na=False)
+    ][["lat", "lon"]].values.tolist()
+
+    HeatMap(
+        basement_points,
+        name="Basement flooding heatmap",
+        radius=18,
+        blur=22,
+        min_opacity=0.25,
     ).add_to(m)
 
-    # ── Community area boundaries ─────────────────────────────────────────────
-    try:
-        folium.GeoJson(
-            "https://data.cityofchicago.org/resource/igwz-8jzy.geojson",
-            style_function=lambda x: {
-                "fillOpacity": 0,
-                "color": "#444",
-                "weight": 1,
-            },
-            name="Community Areas",
-            tooltip=folium.GeoJsonTooltip(fields=["community"], aliases=["Community:"]),
-        ).add_to(m)
-    except Exception:
-        pass
+    cluster = MarkerCluster(name="311 flooding complaint dots").add_to(m)
 
-    # ── Plot ALL 311 complaints using MarkerCluster (no sampling) ──────────────
-    if df is not None and not df.empty:
-        from folium.plugins import MarkerCluster, HeatMap
+    for _, row in df.iterrows():
+        color = flood_color(row["flood_type"])
+        is_south_shore = row.get("ca") == SOUTH_SHORE_CA
 
-        BURGUNDY = "#6D071A"
+        tooltip = f"""
+        <b>{row.get("flood_type", "Flooding complaint")}</b><br>
+        {row.get("addr", "")}<br>
+        Date: {str(row.get("report_date", ""))[:10]}<br>
+        Community Area: {row.get("ca", "")}
+        """
 
-        # Heatmap layer — shows chronic flooding corridors
-        heat_points = df[["lat", "lon"]].dropna().values.tolist()
-        HeatMap(
-            heat_points,
-            radius=18,
-            blur=20,
-            min_opacity=0.3,
-            gradient={"0.2": "#fce4e4", "0.5": "#e07070", "1.0": "#6D071A"},
-        ).add_to(m)
+        folium.CircleMarker(
+            location=[row["lat"], row["lon"]],
+            radius=5 if is_south_shore else 3,
+            color=color,
+            fill=True,
+            fill_color=color,
+            fill_opacity=0.75 if is_south_shore else 0.5,
+            opacity=0.9,
+            weight=1,
+            tooltip=tooltip,
+        ).add_to(cluster)
 
-        # Clustered individual markers — preserves every record
-        cluster = MarkerCluster(
-            options={"maxClusterRadius": 40, "disableClusteringAtZoom": 15}
-        ).add_to(m)
-
-        for _, row in df.iterrows():
-            try:
-                lat, lon = float(row["lat"]), float(row["lon"])
-                ft  = str(row.get("flood_type", "Water in Basement"))
-                addr = str(row.get("addr", ""))
-                date_str = str(row.get("report_date", ""))[:10] if "report_date" in row else ""
-                is_ss = row.get("ca") == 43
-
-                folium.CircleMarker(
-                    location=[lat, lon],
-                    radius=5 if is_ss else 3.5,
-                    color=BURGUNDY,
-                    fill=True,
-                    fill_color=BURGUNDY,
-                    fill_opacity=0.8 if is_ss else 0.55,
-                    weight=1.5 if is_ss else 0.8,
-                    tooltip=(
-                        f"{'🔴 SOUTH SHORE | ' if is_ss else ''}"
-                        f"{ft}<br>{addr}<br>{date_str}"
-                    ),
-                ).add_to(cluster)
-            except Exception:
-                continue
-
-    # Legend
-    legend_html = """
-    <div style="position:fixed;bottom:40px;left:60px;z-index:1000;background:#fff;
-    padding:12px 16px;border-radius:5px;border:1px solid #ccc;font-family:Arial,sans-serif;
-    font-size:12px;box-shadow:2px 2px 6px rgba(0,0,0,.2);max-width:220px">
-      <strong style="color:#0a2240">311 Water in Basement Complaints</strong><br>
-      <em style="font-size:10px;color:#666">This project does not address basement flooding.<br>
-      No stormwater mitigation included. No sewer upgrades.</em><br><br>
-      <span style="background:#6D071A;color:#fff;padding:1px 8px;border-radius:10px">●</span>
-      Water in Basement (311 report)<br>
-      <span style="background:linear-gradient(to right,#fce4e4,#6D071A);padding:1px 8px;border-radius:10px;color:#fff">▬</span>
-      Flooding intensity (heatmap)<br>
-      <span style="background:#f39c12;padding:1px 8px;border-radius:10px">▪</span>
-      Proposed $5M breakwater zone<br>
-      <em style="color:#888;font-size:10px">Zoom in to see individual reports · Source: Chicago Data Portal</em>
+    legend_html = f"""
+    <div style="
+        position: fixed;
+        bottom: 40px;
+        left: 60px;
+        z-index: 9999;
+        background: white;
+        padding: 14px 16px;
+        border: 1px solid #999;
+        border-radius: 5px;
+        font-family: Arial, sans-serif;
+        font-size: 13px;
+        box-shadow: 2px 2px 6px rgba(0,0,0,0.25);
+    ">
+        <b>Chicago 311 Flooding Complaints</b><br><br>
+        <span style="color:{BURGUNDY};font-size:18px;">●</span> Basement flooding<br>
+        <span style="color:{NAVY};font-size:18px;">●</span> Street flooding<br>
+        <span style="color:{ORANGE};font-size:18px;">■</span> Proposed breakwater zone<br>
+        <br>
+        <i>Larger dots = South Shore complaints</i>
     </div>
     """
     m.get_root().html.add_child(folium.Element(legend_html))
 
-    st_folium(m, width="100%", height=520, returned_objects=[])
+    folium.LayerControl(collapsed=False).add_to(m)
 
-except ImportError:
-    st.info(
-        "Map requires `folium` and `streamlit-folium`. "
-        "Add them to requirements.txt and redeploy.",
-        icon="🗺️",
+    st_folium(
+        m,
+        width="100%",
+        height=650,
+        returned_objects=[],
     )
-    if df is not None and not df.empty:
-        st.markdown(f"**{len(df):,} flooding complaints** loaded from Chicago 311 for the South Side.")
 
 st.markdown('</div>', unsafe_allow_html=True)
+
 
 # ── About ──────────────────────────────────────────────────────────────────────
 st.markdown('<div class="content-section" id="about">', unsafe_allow_html=True)
@@ -481,8 +438,8 @@ with col1:
     the photos, the damage, the mold, the displacement — that official data doesn't capture.
     </p>
     <p style="font-size:14px;line-height:1.7;color:#333;font-family:Arial,sans-serif">
-    This is one of the last historically Black lakefront residential communities in America.
-    South Shore deserves infrastructure grounded in science, transparency, and residents'
+    South Shore is one of the most historically significant Black lakefront residential communities
+    in America. It deserves infrastructure grounded in science, transparency, and residents'
     actual needs — not concrete in the lake.
     </p>
     """, unsafe_allow_html=True)
@@ -515,6 +472,7 @@ with col2:
     """, unsafe_allow_html=True)
 
 st.markdown('</div>', unsafe_allow_html=True)
+
 
 # ── Key impacts ────────────────────────────────────────────────────────────────
 st.markdown("""
@@ -565,6 +523,7 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
+
 # ── Report form ────────────────────────────────────────────────────────────────
 st.markdown('<div class="content-section" id="report">', unsafe_allow_html=True)
 st.markdown('<div class="section-head">Report Your Flooding Experience</div>', unsafe_allow_html=True)
@@ -581,32 +540,53 @@ with st.form("flood_report", clear_on_submit=True):
 
     fc1, fc2 = st.columns(2)
     with fc1:
-        name      = st.text_input("Your Name", placeholder="First and last name")
+        name = st.text_input("Your Name", placeholder="First and last name")
         email_addr = st.text_input("Your Email", placeholder="email@example.com")
     with fc2:
-        address   = st.text_input("Address or Intersection", placeholder="e.g. 73rd & Coles Ave, South Shore")
+        address = st.text_input("Address or Intersection", placeholder="e.g. 73rd & Coles Ave, South Shore")
         incident_date = st.date_input("When did this flooding occur?", value=date.today())
 
     flood_type = st.multiselect(
         "Where did flooding occur? (select all that apply)",
-        ["Basement / lower level", "Street / road", "Alley", "Yard / garden",
-         "Park or green space", "Parking lot", "Sidewalk", "Other"],
+        [
+            "Basement / lower level",
+            "Street / road",
+            "Alley",
+            "Yard / garden",
+            "Park or green space",
+            "Parking lot",
+            "Sidewalk",
+            "Other",
+        ],
     )
+
     severity = st.select_slider(
         "How severe was the flooding?",
-        options=["Minor (puddles)", "Moderate (ankle-deep)", "Significant (knee-deep or higher)",
-                 "Severe (property damage)", "Extreme (displacement / emergency)"],
+        options=[
+            "Minor (puddles)",
+            "Moderate (ankle-deep)",
+            "Significant (knee-deep or higher)",
+            "Severe (property damage)",
+            "Extreme (displacement / emergency)",
+        ],
     )
+
     recurrence = st.radio(
         "Has this location flooded before?",
-        ["First time", "Yes — occasionally (1–2 times/year)",
-         "Yes — frequently (every heavy rain)", "Yes — chronic ongoing problem"],
+        [
+            "First time",
+            "Yes — occasionally (1–2 times/year)",
+            "Yes — frequently (every heavy rain)",
+            "Yes — chronic ongoing problem",
+        ],
     )
+
     description = st.text_area(
         "Describe what happened",
         placeholder="When it started, how long water stayed, property damage, city response (or lack of)...",
         height=120,
     )
+
     infrastructure = st.text_area(
         "Any known infrastructure issues nearby? (optional)",
         placeholder="e.g. blocked catch basins, broken sewer, no storm drains...",
@@ -647,11 +627,13 @@ with st.form("flood_report", clear_on_submit=True):
                 f"INFRASTRUCTURE:\n{infrastructure or 'None noted'}\n\n"
                 f"Submitted via south-shore-floods.streamlit.app"
             )
+
             mailto = (
                 "mailto:sokovic.anamarija@gmail.com"
                 f"?subject={urllib.parse.quote(subject)}"
                 f"&body={urllib.parse.quote(body)}"
             )
+
             st.success("✅ Thank you! Click below to send your report.")
             st.markdown(
                 f'<a href="{mailto}" style="display:inline-block;background:#0a2240;color:#fff;'
@@ -662,7 +644,9 @@ with st.form("flood_report", clear_on_submit=True):
             st.info("Your email client will open pre-filled. Hit Send and attach any photos.", icon="📬")
 
     st.markdown('</div>', unsafe_allow_html=True)
+
 st.markdown('</div>', unsafe_allow_html=True)
+
 
 # ── Resources ──────────────────────────────────────────────────────────────────
 st.markdown("""
@@ -689,22 +673,15 @@ st.markdown("""
       </ul>
     </div>
   </div>
-  <div style="margin-top:18px;background:#f0f5ff;border:1px solid #c0d0e8;
-  border-radius:3px;padding:14px 18px;font-family:Arial,sans-serif;font-size:13px;color:#333">
-    <strong style="color:#0a2240">CONTACT DECISION-MAKERS DIRECTLY</strong><br><br>
-    <strong>Mayor Brandon Johnson</strong> · City Hall, 121 N. LaSalle St., Chicago IL 60602
-    · 312-744-3300<br>
-    <strong>Illinois DCEO</strong> · 500 E. Monroe St., Springfield IL 62701
-    · 217-782-7500 · dceo.webmaster@illinois.gov
-  </div>
 </div>
 """, unsafe_allow_html=True)
+
 
 # ── Bottom CTA ─────────────────────────────────────────────────────────────────
 st.markdown("""
 <div style="background:#c0392b;color:#fff;text-align:center;padding:32px 24px">
   <div style="font-size:1.5rem;font-weight:800;font-family:Arial,sans-serif;margin-bottom:8px">
-    One of the last historically Black lakefront residential communities in America did not get a study.<br>
+    South Shore did not get a study.<br>
     It got a construction schedule.
   </div>
   <div style="font-size:14px;color:#f8c8c8;margin-bottom:16px;font-family:Arial,sans-serif">
@@ -717,6 +694,7 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
+
 # ── Footer ─────────────────────────────────────────────────────────────────────
 st.markdown("""
 <div class="page-footer">
@@ -725,7 +703,7 @@ st.markdown("""
   &nbsp;·&nbsp; Petition: <a href="http://bit.ly/4ukCmjg" target="_blank">bit.ly/4ukCmjg</a>
   &nbsp;·&nbsp; FOIA analysis: <a href="https://tinyurl.com/4sh34tdj" target="_blank">tinyurl.com/4sh34tdj</a><br>
   <span style="color:#5a7090;font-size:11px">
-    311 data sourced live from the City of Chicago Data Portal (public domain).
+    311 data sourced live from the City of Chicago Data Portal.
     Community reports are used solely for civic advocacy purposes.
   </span>
 </div>
