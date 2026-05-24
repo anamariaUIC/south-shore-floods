@@ -328,55 +328,53 @@ st.markdown(f"""
 st.markdown('<div class="content-section" id="about">', unsafe_allow_html=True)
 st.markdown('<div class="section-head">About This Initiative</div>', unsafe_allow_html=True)
 
-col1, col2 = st.columns([1.6, 1])
-with col1:
-    st.markdown("""
-    <div class="pullquote">
-    "Every time it rains hard in South Shore, basements flood. Streets turn into rivers.
-    Families pump water out of their homes, replace ruined belongings, and fight mold for months.
-    This is one of only four Chicago neighborhoods identified as being at the highest risk
-    of urban flooding in the entire city."
-    </div>
-    <p style="font-size:14px;line-height:1.7;color:#333;font-family:Arial,sans-serif">
-    Despite this, the City of Chicago is advancing a <strong>$5 million lakefront breakwater
-    project between 71st and 75th Street</strong> — infrastructure South Shore never asked for,
-    with no updated environmental review, funded by a grant expiration deadline, not an
-    independently assessed hazard.
-    </p>
-    <p style="font-size:14px;line-height:1.7;color:#333;font-family:Arial,sans-serif">
-    <strong>This page exists to document what residents are actually experiencing.</strong>
-    Further below you will find the 311 map of officially filed complaints. Your report here adds the human layer —
-    the photos, the damage, the mold, the displacement — that official data doesn't capture.
-    </p>
-    <p style="font-size:14px;line-height:1.7;color:#333;font-family:Arial,sans-serif">
-    This is the last Black lakefront residential community in America.
-    South Shore deserves infrastructure grounded in science, transparency, and residents'
-    actual needs — not concrete in the lake.
-    </p>
-    """, unsafe_allow_html=True)
+# Full-width text — no tall column to push things down
+st.markdown("""
+<div class="pullquote">
+"Every time it rains hard in South Shore, basements flood. Streets turn into rivers.
+Families pump water out of their homes, replace ruined belongings, and fight mold for months.
+This is one of only four Chicago neighborhoods identified as being at the highest risk
+of urban flooding in the entire city."
+</div>
+<p style="font-size:14px;line-height:1.7;color:#333;font-family:Arial,sans-serif;margin-bottom:8px">
+Despite this, the City of Chicago is advancing a <strong>$5 million lakefront breakwater
+project between 71st and 75th Street</strong> — infrastructure South Shore never asked for,
+with no updated environmental review, funded by a grant expiration deadline, not an
+independently assessed hazard.
+<strong>This page exists to document what residents are actually experiencing.</strong>
+Further below you will find the 311 map of officially filed complaints. Your report adds the
+human layer — the photos, the damage, the mold, the displacement — that official data cannot capture.
+This is the last Black lakefront residential community in America.
+South Shore deserves infrastructure grounded in science, transparency, and the actual needs
+of residents — not concrete in the lake.
+</p>
+""", unsafe_allow_html=True)
 
-with col2:
+# Compact horizontal row: flyer image left, petition box right
+img_col, pet_col = st.columns([1.4, 1])
+with img_col:
     try:
         st.image("flyer.png", use_container_width=True)
     except Exception:
         pass
+with pet_col:
     st.markdown("""
     <div style="background:#f8f0f0;border:1px solid #e0b0b0;border-radius:3px;
-    padding:14px;margin-top:8px;font-family:Arial,sans-serif">
+    padding:14px 16px;font-family:Arial,sans-serif;height:100%">
       <div style="font-weight:700;color:#c0392b;font-size:13px;margin-bottom:8px">
         WHAT THE PETITION CALLS FOR
       </div>
-      <ul style="font-size:12px;color:#333;line-height:1.8;margin:0;padding-left:16px">
+      <ul style="font-size:13px;color:#333;line-height:1.9;margin:0;padding-left:16px">
         <li><strong>Pause</strong> the breakwater project</li>
         <li><strong>Redirect</strong> the $5M to flood mitigation residents need</li>
         <li><strong>Require</strong> transparent environmental review</li>
         <li><strong>Evaluate</strong> nature-based alternatives</li>
         <li><strong>Ensure</strong> meaningful community input</li>
       </ul>
-      <div style="text-align:center;margin-top:12px">
+      <div style="text-align:center;margin-top:14px">
         <a href="http://bit.ly/4ukCmjg" target="_blank"
         style="display:inline-block;background:#c0392b;color:#fff;font-weight:700;
-        font-size:13px;padding:8px 20px;border-radius:3px;text-decoration:none">
+        font-size:13px;padding:9px 22px;border-radius:3px;text-decoration:none">
         ✍️ Sign Now →</a>
       </div>
     </div>
