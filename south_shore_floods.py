@@ -650,7 +650,6 @@ st.markdown("""
         <li><a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC9813723" target="_blank" style="color:#0a2240">Peer-reviewed breakwater impact study (Heliyon, 2022)</a></li>
         <li><a href="https://wicoastalresilience.org/march-2026-water-level-update" target="_blank" style="color:#0a2240">Lake Michigan water level update (March 2026)</a></li>
         <li><a href="https://data.cityofchicago.org/Service-Requests/Flooding-Complaints-to-311/qrmr-m89j" target="_blank" style="color:#0a2240">Chicago 311 Flooding Complaints Dataset</a></li>
-        <li><a href="https://www.glerl.noaa.gov/data/wlevels/dashboard/" target="_blank" style="color:#0a2240">NOAA GLERL: Great Lakes Water Level Dashboard</a></li>
       </ul>
     </div>
     <div>
