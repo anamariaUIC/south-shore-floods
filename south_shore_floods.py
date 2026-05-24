@@ -364,32 +364,63 @@ try:
         icon=folium.Icon(color="orange", icon="warning-sign", prefix="glyphicon"),
     ).add_to(m)
 
-    # Plot 311 complaints
+    # ── Community area boundaries ─────────────────────────────────────────────
+    try:
+        folium.GeoJson(
+            "https://data.cityofchicago.org/resource/igwz-8jzy.geojson",
+            style_function=lambda x: {
+                "fillOpacity": 0,
+                "color": "#444",
+                "weight": 1,
+            },
+            name="Community Areas",
+            tooltip=folium.GeoJsonTooltip(fields=["community"], aliases=["Community:"]),
+        ).add_to(m)
+    except Exception:
+        pass
+
+    # ── Plot ALL 311 complaints using MarkerCluster (no sampling) ──────────────
     if df is not None and not df.empty:
-        def get_color(flood_type):
-            return "#c0392b"  # All records are Water in Basement
+        from folium.plugins import MarkerCluster, HeatMap
 
-        sample = df.sample(min(len(df), 3000), random_state=42) if len(df) > 3000 else df
+        BURGUNDY = "#6D071A"
 
-        for _, row in sample.iterrows():
+        # Heatmap layer — shows chronic flooding corridors
+        heat_points = df[["lat", "lon"]].dropna().values.tolist()
+        HeatMap(
+            heat_points,
+            radius=18,
+            blur=20,
+            min_opacity=0.3,
+            gradient={"0.2": "#fce4e4", "0.5": "#e07070", "1.0": "#6D071A"},
+        ).add_to(m)
+
+        # Clustered individual markers — preserves every record
+        cluster = MarkerCluster(
+            options={"maxClusterRadius": 40, "disableClusteringAtZoom": 15}
+        ).add_to(m)
+
+        for _, row in df.iterrows():
             try:
                 lat, lon = float(row["lat"]), float(row["lon"])
-                ft = str(row.get("flood_type", "Flooding"))
+                ft  = str(row.get("flood_type", "Water in Basement"))
                 addr = str(row.get("addr", ""))
                 date_str = str(row.get("report_date", ""))[:10] if "report_date" in row else ""
-                color = get_color(ft)
                 is_ss = row.get("ca") == 43
 
                 folium.CircleMarker(
                     location=[lat, lon],
                     radius=5 if is_ss else 3.5,
-                    color=color,
+                    color=BURGUNDY,
                     fill=True,
-                    fill_color=color,
-                    fill_opacity=0.75 if is_ss else 0.5,
+                    fill_color=BURGUNDY,
+                    fill_opacity=0.8 if is_ss else 0.55,
                     weight=1.5 if is_ss else 0.8,
-                    tooltip=f"{'🔴 SOUTH SHORE | ' if is_ss else ''}{ft}<br>{addr}<br>{date_str}",
-                ).add_to(m)
+                    tooltip=(
+                        f"{'🔴 SOUTH SHORE | ' if is_ss else ''}"
+                        f"{ft}<br>{addr}<br>{date_str}"
+                    ),
+                ).add_to(cluster)
             except Exception:
                 continue
 
@@ -397,13 +428,17 @@ try:
     legend_html = """
     <div style="position:fixed;bottom:40px;left:60px;z-index:1000;background:#fff;
     padding:12px 16px;border-radius:5px;border:1px solid #ccc;font-family:Arial,sans-serif;
-    font-size:12px;box-shadow:2px 2px 6px rgba(0,0,0,.2)">
-      <strong style="color:#0a2240">311 Water in Basement Complaints</strong><br><br>
-      <span style="background:#c0392b;color:#fff;padding:1px 8px;border-radius:10px">●</span>
+    font-size:12px;box-shadow:2px 2px 6px rgba(0,0,0,.2);max-width:220px">
+      <strong style="color:#0a2240">311 Water in Basement Complaints</strong><br>
+      <em style="font-size:10px;color:#666">This project does not address basement flooding.<br>
+      No stormwater mitigation included. No sewer upgrades.</em><br><br>
+      <span style="background:#6D071A;color:#fff;padding:1px 8px;border-radius:10px">●</span>
       Water in Basement (311 report)<br>
+      <span style="background:linear-gradient(to right,#fce4e4,#6D071A);padding:1px 8px;border-radius:10px;color:#fff">▬</span>
+      Flooding intensity (heatmap)<br>
       <span style="background:#f39c12;padding:1px 8px;border-radius:10px">▪</span>
       Proposed $5M breakwater zone<br>
-      <em style="color:#888;font-size:10px">Larger dots = South Shore · Source: Chicago Data Portal</em>
+      <em style="color:#888;font-size:10px">Zoom in to see individual reports · Source: Chicago Data Portal</em>
     </div>
     """
     m.get_root().html.add_child(folium.Element(legend_html))
@@ -446,7 +481,7 @@ with col1:
     the photos, the damage, the mold, the displacement — that official data doesn't capture.
     </p>
     <p style="font-size:14px;line-height:1.7;color:#333;font-family:Arial,sans-serif">
-    This is the last Black lakefront residential community in America.
+    This is one of the last historically Black lakefront residential communities in America.
     South Shore deserves infrastructure grounded in science, transparency, and residents'
     actual needs — not concrete in the lake.
     </p>
@@ -669,7 +704,7 @@ st.markdown("""
 st.markdown("""
 <div style="background:#c0392b;color:#fff;text-align:center;padding:32px 24px">
   <div style="font-size:1.5rem;font-weight:800;font-family:Arial,sans-serif;margin-bottom:8px">
-    The last Black lakefront residential community in America did not get a study.<br>
+    One of the last historically Black lakefront residential communities in America did not get a study.<br>
     It got a construction schedule.
   </div>
   <div style="font-size:14px;color:#f8c8c8;margin-bottom:16px;font-family:Arial,sans-serif">
