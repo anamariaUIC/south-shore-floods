@@ -324,15 +324,245 @@ st.markdown(f"""
 """, unsafe_allow_html=True)
 
 # ── Map section ────────────────────────────────────────────────────────────────
+# ── About ──────────────────────────────────────────────────────────────────────
+st.markdown('<div class="content-section" id="about">', unsafe_allow_html=True)
+st.markdown('<div class="section-head">About This Initiative</div>', unsafe_allow_html=True)
+
+col1, col2 = st.columns([1.6, 1])
+with col1:
+    st.markdown("""
+    <div class="pullquote">
+    "Every time it rains hard in South Shore, basements flood. Streets turn into rivers.
+    Families pump water out of their homes, replace ruined belongings, and fight mold for months.
+    This is one of only four Chicago neighborhoods identified as being at the highest risk
+    of urban flooding in the entire city."
+    </div>
+    <p style="font-size:14px;line-height:1.7;color:#333;font-family:Arial,sans-serif">
+    Despite this, the City of Chicago is advancing a <strong>$5 million lakefront breakwater
+    project between 71st and 75th Street</strong> — infrastructure South Shore never asked for,
+    with no updated environmental review, funded by a grant expiration deadline, not an
+    independently assessed hazard.
+    </p>
+    <p style="font-size:14px;line-height:1.7;color:#333;font-family:Arial,sans-serif">
+    <strong>This page exists to document what residents are actually experiencing.</strong>
+    Further below you will find the 311 map of officially filed complaints. Your report here adds the human layer —
+    the photos, the damage, the mold, the displacement — that official data doesn't capture.
+    </p>
+    <p style="font-size:14px;line-height:1.7;color:#333;font-family:Arial,sans-serif">
+    This is the last Black lakefront residential community in America.
+    South Shore deserves infrastructure grounded in science, transparency, and residents'
+    actual needs — not concrete in the lake.
+    </p>
+    """, unsafe_allow_html=True)
+
+with col2:
+    try:
+        st.image("flyer.png", use_container_width=True)
+    except Exception:
+        pass
+    st.markdown("""
+    <div style="background:#f8f0f0;border:1px solid #e0b0b0;border-radius:3px;
+    padding:14px;margin-top:8px;font-family:Arial,sans-serif">
+      <div style="font-weight:700;color:#c0392b;font-size:13px;margin-bottom:8px">
+        WHAT THE PETITION CALLS FOR
+      </div>
+      <ul style="font-size:12px;color:#333;line-height:1.8;margin:0;padding-left:16px">
+        <li><strong>Pause</strong> the breakwater project</li>
+        <li><strong>Redirect</strong> the $5M to flood mitigation residents need</li>
+        <li><strong>Require</strong> transparent environmental review</li>
+        <li><strong>Evaluate</strong> nature-based alternatives</li>
+        <li><strong>Ensure</strong> meaningful community input</li>
+      </ul>
+      <div style="text-align:center;margin-top:12px">
+        <a href="http://bit.ly/4ukCmjg" target="_blank"
+        style="display:inline-block;background:#c0392b;color:#fff;font-weight:700;
+        font-size:13px;padding:8px 20px;border-radius:3px;text-decoration:none">
+        ✍️ Sign Now →</a>
+      </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+st.markdown('</div>', unsafe_allow_html=True)
+
+# ── Key impacts ────────────────────────────────────────────────────────────────
+st.markdown("""
+<div class="content-section">
+  <div class="section-head">What Breakwaters Actually Do</div>
+  <div class="section-sub">
+    Peer-reviewed science. (<a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC9813723"
+    target="_blank" style="color:#0a2240">Saengsupavanich et al., Heliyon 2022</a>)
+  </div>
+  <div class="concerns-grid">
+    <div class="concern-card">
+      <div class="concern-icon">🏖️</div>
+      <div class="concern-title">Beach & Shoreline Destruction</div>
+      <div class="concern-text">Permanently interrupts sediment transport. Damage extends far
+      beyond 75th Street — Promontory Point, Rainbow Beach, every neighbor absorbs accelerated erosion.</div>
+    </div>
+    <div class="concern-card">
+      <div class="concern-icon">🌀</div>
+      <div class="concern-title">Dangerous Currents</div>
+      <div class="concern-text">Strong eddies between breakwater gaps dramatically increase
+      drowning risk. Studies document 67 victims/year at studied sites. South Shore families swim here.</div>
+    </div>
+    <div class="concern-card">
+      <div class="concern-icon">🐟</div>
+      <div class="concern-title">Water Quality & Hypoxia</div>
+      <div class="concern-text">Creates water stagnation, hypoxic dead zones in summer,
+      degraded water quality, and conditions that drive beachgoers away.</div>
+    </div>
+    <div class="concern-card">
+      <div class="concern-icon">⛓️</div>
+      <div class="concern-title">Erosion Chain Reaction</div>
+      <div class="concern-text">Intended to protect one stretch, breakwaters actively accelerate
+      erosion elsewhere — a shore-parallel seawall effect worsening downdrift erosion for years.</div>
+    </div>
+    <div class="concern-card">
+      <div class="concern-icon">🌿</div>
+      <div class="concern-title">Ecological Damage</div>
+      <div class="concern-text">Destroys lake bottom habitats, reduces dissolved oxygen,
+      intensifies turbidity. No environmental review for this project has ever been produced.</div>
+    </div>
+    <div class="concern-card">
+      <div class="concern-icon">💰</div>
+      <div class="concern-title">Cost & Lock-In</div>
+      <div class="concern-text">Nature-based alternatives cost 2–5× less. Once concrete is poured,
+      you are locked in for generations. Ogden Dunes, Indiana spent $5M undoing one breakwater's damage.</div>
+    </div>
+  </div>
+</div>
+""", unsafe_allow_html=True)
+
+# ── Report form ────────────────────────────────────────────────────────────────
+st.markdown('<div class="content-section" id="report">', unsafe_allow_html=True)
+st.markdown('<div class="section-head">Report Your Flooding Experience</div>', unsafe_allow_html=True)
+st.markdown("""
+<p style="font-size:14px;color:#333;font-family:Arial,sans-serif;margin-bottom:6px;line-height:1.7">
+  We have 311 complaint data from the Chicago Data Portal — but official records only capture part
+  of the story. Calls go unfiled. Flooding in backyards, alleys, parks, and parking lots rarely
+  makes it into the system. And 311 data does not tell us about the mold that grew for months,
+  the belongings that were ruined, the family that had to leave, or the repair bills that wiped
+  out a household's savings.
+</p>
+<p style="font-size:14px;color:#333;font-family:Arial,sans-serif;margin-bottom:12px;line-height:1.7">
+  <strong>We need the most up-to-date, self-reported flooding data directly from South Shore
+  residents.</strong> Your account — in your words, from your block, with your photos — is the
+  evidence that city data cannot produce. Tell us what happened. Every report matters.
+</p>
+""", unsafe_allow_html=True)
+
+with st.form("flood_report", clear_on_submit=True):
+    st.markdown('<div class="form-section">', unsafe_allow_html=True)
+
+    fc1, fc2 = st.columns(2)
+    with fc1:
+        name      = st.text_input("Your Name", placeholder="First and last name")
+        email_addr = st.text_input("Your Email", placeholder="email@example.com")
+    with fc2:
+        address   = st.text_input("Address or Intersection", placeholder="e.g. 73rd & Coles Ave, South Shore")
+        incident_date = st.date_input("When did this flooding occur?", value=date.today())
+
+    flood_type = st.multiselect(
+        "Where did flooding occur? (select all that apply)",
+        ["Basement / lower level", "Street / road", "Alley", "Yard / garden",
+         "Park or green space", "Parking lot", "Sidewalk", "Other"],
+    )
+    severity = st.select_slider(
+        "How severe was the flooding?",
+        options=["Minor (puddles)", "Moderate (ankle-deep)", "Significant (knee-deep or higher)",
+                 "Severe (property damage)", "Extreme (displacement / emergency)"],
+    )
+    recurrence = st.radio(
+        "Has this location flooded before?",
+        ["First time", "Yes — occasionally (1–2 times/year)",
+         "Yes — frequently (every heavy rain)", "Yes — chronic ongoing problem"],
+    )
+    description = st.text_area(
+        "Describe what happened",
+        placeholder="When it started, how long water stayed, property damage, city response (or lack of)...",
+        height=120,
+    )
+    infrastructure = st.text_area(
+        "Any known infrastructure issues nearby? (optional)",
+        placeholder="e.g. blocked catch basins, broken sewer, no storm drains...",
+        height=60,
+    )
+
+    st.markdown("""
+    <div class="photo-note">
+      📷 <strong>Have photos or videos?</strong> Email them directly to
+      <a href="mailto:sokovic.anamarija@gmail.com">sokovic.anamarija@gmail.com</a>
+      — subject: <strong>"South Shore Flooding — [your street]"</strong>.
+      Basement water, flooded streets, overwhelmed drains, mold — all of it matters.
+    </div>
+    """, unsafe_allow_html=True)
+
+    consent = st.checkbox("I consent to this report being used as part of the public record on South Shore flooding.")
+    submitted = st.form_submit_button("Submit My Report")
+
+    if submitted:
+        if not name or not address or not description:
+            st.error("Please fill in your name, address/location, and description.")
+        elif not consent:
+            st.error("Please check the consent box to submit your report.")
+        else:
+            flood_types_str = ", ".join(flood_type) if flood_type else "Not specified"
+            subject = f"South Shore Flooding Report — {address}"
+            body = (
+                f"SOUTH SHORE FLOODING REPORT\n"
+                f"============================\n"
+                f"Name: {name}\n"
+                f"Email: {email_addr}\n"
+                f"Location: {address}\n"
+                f"Date: {incident_date}\n\n"
+                f"Flooding locations: {flood_types_str}\n"
+                f"Severity: {severity}\n"
+                f"Recurrence: {recurrence}\n\n"
+                f"DESCRIPTION:\n{description}\n\n"
+                f"INFRASTRUCTURE:\n{infrastructure or 'None noted'}\n\n"
+                f"Submitted via south-shore-floods.streamlit.app"
+            )
+            mailto = (
+                "mailto:sokovic.anamarija@gmail.com"
+                f"?subject={urllib.parse.quote(subject)}"
+                f"&body={urllib.parse.quote(body)}"
+            )
+            st.success("✅ Thank you! Click below to send your report.")
+            st.markdown(
+                f'<a href="{mailto}" style="display:inline-block;background:#0a2240;color:#fff;'
+                f'font-weight:700;font-size:14px;padding:10px 28px;border-radius:3px;'
+                f'text-decoration:none;margin-top:8px">📧 Open Email to Send Report →</a>',
+                unsafe_allow_html=True,
+            )
+            st.info("Your email client will open pre-filled. Hit Send and attach any photos.", icon="📬")
+
+    st.markdown('</div>', unsafe_allow_html=True)
+st.markdown('</div>', unsafe_allow_html=True)
+
+# ── 311 Map — shown after report form ────────────────────────────────────────
 st.markdown('<div class="content-section" id="map">', unsafe_allow_html=True)
 st.markdown('<div class="section-head">311 Flooding Complaints — South Side Chicago</div>', unsafe_allow_html=True)
 st.markdown("""
 <div class="section-sub">
-  Live data from the <a href="https://data.cityofchicago.org/Service-Requests/Flooding-Complaints-to-311/qrmr-m89j"
+  <p style="font-size:14px;color:#333;font-family:Arial,sans-serif;line-height:1.7;margin:0 0 10px 0">
+  The map below shows official <strong>311 flooding complaints</strong> filed with the City of Chicago
+  — real reports from real residents, pulled live from the
+  <a href="https://data.cityofchicago.org/Service-Requests/Flooding-Complaints-to-311/qrmr-m89j"
   target="_blank" style="color:#0a2240">Chicago Data Portal</a>.
-  Each dot is a real 311 flooding complaint filed by a resident.
-  Red = basement flooding · Blue = street flooding · Orange = other.
-  The <strong>yellow zone</strong> marks the proposed breakwater project area (71st–75th St lakefront).
+  This data captures some of what is happening on the ground — but 311 reports are only a fraction
+  of the actual flooding South Shore residents experience. Many people never call 311. Many calls
+  go unlogged. Flooding in alleys, parks, backyards, and parking lots rarely makes it into the
+  official record at all.
+  </p>
+  <p style="font-size:14px;color:#333;font-family:Arial,sans-serif;line-height:1.7;margin:0 0 6px 0">
+  <strong>That is why your self-reported experience matters most.</strong>
+  The 311 data tells the city's story. Your report above tells the truth.
+  Together, they build the public record that decision-makers cannot ignore.
+  </p>
+  <p style="font-size:13px;color:#666;font-family:Arial,sans-serif;margin:0">
+  Map key: 🔴 Basement flooding · 🔵 Street flooding · 🟠 Other ·
+  <strong style="color:#e67e22">Yellow zone</strong> = proposed $5M breakwater project (71st–75th St lakefront)
+  </p>
 </div>
 """, unsafe_allow_html=True)
 
@@ -427,214 +657,6 @@ except ImportError:
     if df is not None and not df.empty:
         st.markdown(f"**{len(df):,} flooding complaints** loaded from Chicago 311 for the South Side.")
 
-st.markdown('</div>', unsafe_allow_html=True)
-
-# ── About ──────────────────────────────────────────────────────────────────────
-st.markdown('<div class="content-section" id="about">', unsafe_allow_html=True)
-st.markdown('<div class="section-head">About This Initiative</div>', unsafe_allow_html=True)
-
-col1, col2 = st.columns([1.6, 1])
-with col1:
-    st.markdown("""
-    <div class="pullquote">
-    "Every time it rains hard in South Shore, basements flood. Streets turn into rivers.
-    Families pump water out of their homes, replace ruined belongings, and fight mold for months.
-    This is one of only four Chicago neighborhoods identified as being at the highest risk
-    of urban flooding in the entire city."
-    </div>
-    <p style="font-size:14px;line-height:1.7;color:#333;font-family:Arial,sans-serif">
-    Despite this, the City of Chicago is advancing a <strong>$5 million lakefront breakwater
-    project between 71st and 75th Street</strong> — infrastructure South Shore never asked for,
-    with no updated environmental review, funded by a grant expiration deadline, not an
-    independently assessed hazard.
-    </p>
-    <p style="font-size:14px;line-height:1.7;color:#333;font-family:Arial,sans-serif">
-    <strong>This page exists to document what residents are actually experiencing.</strong>
-    The 311 map above shows officially filed complaints. Your reports below add the human layer —
-    the photos, the damage, the mold, the displacement — that official data doesn't capture.
-    </p>
-    <p style="font-size:14px;line-height:1.7;color:#333;font-family:Arial,sans-serif">
-    This is the last Black lakefront residential community in America.
-    South Shore deserves infrastructure grounded in science, transparency, and residents'
-    actual needs — not concrete in the lake.
-    </p>
-    """, unsafe_allow_html=True)
-
-with col2:
-    try:
-        st.image("flyer.png", use_container_width=True)
-    except Exception:
-        pass
-    st.markdown("""
-    <div style="background:#f8f0f0;border:1px solid #e0b0b0;border-radius:3px;
-    padding:14px;margin-top:8px;font-family:Arial,sans-serif">
-      <div style="font-weight:700;color:#c0392b;font-size:13px;margin-bottom:8px">
-        WHAT THE PETITION CALLS FOR
-      </div>
-      <ul style="font-size:12px;color:#333;line-height:1.8;margin:0;padding-left:16px">
-        <li><strong>Pause</strong> the breakwater project</li>
-        <li><strong>Redirect</strong> the $5M to flood mitigation residents need</li>
-        <li><strong>Require</strong> transparent environmental review</li>
-        <li><strong>Evaluate</strong> nature-based alternatives</li>
-        <li><strong>Ensure</strong> meaningful community input</li>
-      </ul>
-      <div style="text-align:center;margin-top:12px">
-        <a href="http://bit.ly/4ukCmjg" target="_blank"
-        style="display:inline-block;background:#c0392b;color:#fff;font-weight:700;
-        font-size:13px;padding:8px 20px;border-radius:3px;text-decoration:none">
-        ✍️ Sign Now →</a>
-      </div>
-    </div>
-    """, unsafe_allow_html=True)
-
-st.markdown('</div>', unsafe_allow_html=True)
-
-# ── Key impacts ────────────────────────────────────────────────────────────────
-st.markdown("""
-<div class="content-section">
-  <div class="section-head">What Breakwaters Actually Do</div>
-  <div class="section-sub">
-    Peer-reviewed science. (<a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC9813723"
-    target="_blank" style="color:#0a2240">Saengsupavanich et al., Heliyon 2022</a>)
-  </div>
-  <div class="concerns-grid">
-    <div class="concern-card">
-      <div class="concern-icon">🏖️</div>
-      <div class="concern-title">Beach & Shoreline Destruction</div>
-      <div class="concern-text">Permanently interrupts sediment transport. Damage extends far
-      beyond 75th Street — Promontory Point, Rainbow Beach, every neighbor absorbs accelerated erosion.</div>
-    </div>
-    <div class="concern-card">
-      <div class="concern-icon">🌀</div>
-      <div class="concern-title">Dangerous Currents</div>
-      <div class="concern-text">Strong eddies between breakwater gaps dramatically increase
-      drowning risk. Studies document 67 victims/year at studied sites. South Shore families swim here.</div>
-    </div>
-    <div class="concern-card">
-      <div class="concern-icon">🐟</div>
-      <div class="concern-title">Water Quality & Hypoxia</div>
-      <div class="concern-text">Creates water stagnation, hypoxic dead zones in summer,
-      degraded water quality, and conditions that drive beachgoers away.</div>
-    </div>
-    <div class="concern-card">
-      <div class="concern-icon">⛓️</div>
-      <div class="concern-title">Erosion Chain Reaction</div>
-      <div class="concern-text">Intended to protect one stretch, breakwaters actively accelerate
-      erosion elsewhere — a shore-parallel seawall effect worsening downdrift erosion for years.</div>
-    </div>
-    <div class="concern-card">
-      <div class="concern-icon">🌿</div>
-      <div class="concern-title">Ecological Damage</div>
-      <div class="concern-text">Destroys lake bottom habitats, reduces dissolved oxygen,
-      intensifies turbidity. No environmental review for this project has ever been produced.</div>
-    </div>
-    <div class="concern-card">
-      <div class="concern-icon">💰</div>
-      <div class="concern-title">Cost & Lock-In</div>
-      <div class="concern-text">Nature-based alternatives cost 2–5× less. Once concrete is poured,
-      you are locked in for generations. Ogden Dunes, Indiana spent $5M undoing one breakwater's damage.</div>
-    </div>
-  </div>
-</div>
-""", unsafe_allow_html=True)
-
-# ── Report form ────────────────────────────────────────────────────────────────
-st.markdown('<div class="content-section" id="report">', unsafe_allow_html=True)
-st.markdown('<div class="section-head">Report Your Flooding Experience</div>', unsafe_allow_html=True)
-st.markdown("""
-<p style="font-size:14px;color:#333;font-family:Arial,sans-serif;margin-bottom:12px">
-  The 311 map shows official complaints — but not the full picture. Tell us what happened to you.
-  Your report builds a public record that decision-makers cannot ignore.
-  <strong>Self-reporting is the most powerful tool we have.</strong>
-</p>
-""", unsafe_allow_html=True)
-
-with st.form("flood_report", clear_on_submit=True):
-    st.markdown('<div class="form-section">', unsafe_allow_html=True)
-
-    fc1, fc2 = st.columns(2)
-    with fc1:
-        name      = st.text_input("Your Name", placeholder="First and last name")
-        email_addr = st.text_input("Your Email", placeholder="email@example.com")
-    with fc2:
-        address   = st.text_input("Address or Intersection", placeholder="e.g. 73rd & Coles Ave, South Shore")
-        incident_date = st.date_input("When did this flooding occur?", value=date.today())
-
-    flood_type = st.multiselect(
-        "Where did flooding occur? (select all that apply)",
-        ["Basement / lower level", "Street / road", "Alley", "Yard / garden",
-         "Park or green space", "Parking lot", "Sidewalk", "Other"],
-    )
-    severity = st.select_slider(
-        "How severe was the flooding?",
-        options=["Minor (puddles)", "Moderate (ankle-deep)", "Significant (knee-deep or higher)",
-                 "Severe (property damage)", "Extreme (displacement / emergency)"],
-    )
-    recurrence = st.radio(
-        "Has this location flooded before?",
-        ["First time", "Yes — occasionally (1–2 times/year)",
-         "Yes — frequently (every heavy rain)", "Yes — chronic ongoing problem"],
-    )
-    description = st.text_area(
-        "Describe what happened",
-        placeholder="When it started, how long water stayed, property damage, city response (or lack of)...",
-        height=120,
-    )
-    infrastructure = st.text_area(
-        "Any known infrastructure issues nearby? (optional)",
-        placeholder="e.g. blocked catch basins, broken sewer, no storm drains...",
-        height=60,
-    )
-
-    st.markdown("""
-    <div class="photo-note">
-      📷 <strong>Have photos or videos?</strong> Email them directly to
-      <a href="mailto:sokovic.anamarija@gmail.com">sokovic.anamarija@gmail.com</a>
-      — subject: <strong>"South Shore Flooding — [your street]"</strong>.
-      Basement water, flooded streets, overwhelmed drains, mold — all of it matters.
-    </div>
-    """, unsafe_allow_html=True)
-
-    consent = st.checkbox("I consent to this report being used as part of the public record on South Shore flooding.")
-    submitted = st.form_submit_button("Submit My Report")
-
-    if submitted:
-        if not name or not address or not description:
-            st.error("Please fill in your name, address/location, and description.")
-        elif not consent:
-            st.error("Please check the consent box to submit your report.")
-        else:
-            flood_types_str = ", ".join(flood_type) if flood_type else "Not specified"
-            subject = f"South Shore Flooding Report — {address}"
-            body = (
-                f"SOUTH SHORE FLOODING REPORT\n"
-                f"============================\n"
-                f"Name: {name}\n"
-                f"Email: {email_addr}\n"
-                f"Location: {address}\n"
-                f"Date: {incident_date}\n\n"
-                f"Flooding locations: {flood_types_str}\n"
-                f"Severity: {severity}\n"
-                f"Recurrence: {recurrence}\n\n"
-                f"DESCRIPTION:\n{description}\n\n"
-                f"INFRASTRUCTURE:\n{infrastructure or 'None noted'}\n\n"
-                f"Submitted via south-shore-floods.streamlit.app"
-            )
-            mailto = (
-                "mailto:sokovic.anamarija@gmail.com"
-                f"?subject={urllib.parse.quote(subject)}"
-                f"&body={urllib.parse.quote(body)}"
-            )
-            st.success("✅ Thank you! Click below to send your report.")
-            st.markdown(
-                f'<a href="{mailto}" style="display:inline-block;background:#0a2240;color:#fff;'
-                f'font-weight:700;font-size:14px;padding:10px 28px;border-radius:3px;'
-                f'text-decoration:none;margin-top:8px">📧 Open Email to Send Report →</a>',
-                unsafe_allow_html=True,
-            )
-            st.info("Your email client will open pre-filled. Hit Send and attach any photos.", icon="📬")
-
-    st.markdown('</div>', unsafe_allow_html=True)
 st.markdown('</div>', unsafe_allow_html=True)
 
 # ── Resources ──────────────────────────────────────────────────────────────────
