@@ -159,15 +159,15 @@ _fallback_rows = (
     _pts(180, 41.748, 41.775, -87.586, -87.565, "Water in Basement Complaint") +
     _pts(60,  41.748, 41.775, -87.586, -87.565, "Water On Street Complaint")   +
     # South Shore lakefront residential (71st–79th St, east of Stony Island)
-    # Eastern boundary -87.560 = safely west of South Shore Drive across all latitudes
-    _pts(55,  41.749, 41.766, -87.572, -87.560, "Water in Basement Complaint") +
-    _pts(20,  41.749, 41.766, -87.572, -87.560, "Water On Street Complaint")   +
+    # Stay well west of Shore Drive — diagonal filter applied below will trim anything too close
+    _pts(55,  41.749, 41.766, -87.575, -87.555, "Water in Basement Complaint") +
+    _pts(20,  41.749, 41.766, -87.575, -87.555, "Water On Street Complaint")   +
     # Woodlawn (ca 42) — north of South Shore
     _pts(40,  41.775, 41.793, -87.607, -87.588, "Water in Basement Complaint") +
     _pts(20,  41.775, 41.793, -87.607, -87.588, "Water On Street Complaint")   +
     # South Chicago / East Side (75th–87th St, stays west of South Shore Dr)
-    _pts(35,  41.722, 41.749, -87.572, -87.560, "Water in Basement Complaint") +
-    _pts(12,  41.722, 41.749, -87.572, -87.560, "Water On Street Complaint")   +
+    _pts(35,  41.722, 41.749, -87.575, -87.555, "Water in Basement Complaint") +
+    _pts(12,  41.722, 41.749, -87.575, -87.555, "Water On Street Complaint")   +
     # Avalon Park / Calumet Heights (ca 45/48)
     _pts(30,  41.722, 41.748, -87.590, -87.565, "Water in Basement Complaint") +
     _pts(12,  41.722, 41.748, -87.590, -87.565, "Water On Street Complaint")   +
@@ -213,7 +213,7 @@ def fetch_south_shore_311():
         "$order": "created_date DESC",
         "$where": (
             "latitude > 41.700 AND latitude < 41.780 "  # south of 63rd St
-            "AND longitude > -87.660 AND longitude < -87.558 "  # well west of South Shore Drive
+            "AND longitude > -87.660 AND longitude < -87.540 "
             "AND latitude IS NOT NULL "
             "AND longitude IS NOT NULL"
         ),
@@ -235,7 +235,7 @@ def fetch_south_shore_311():
                 df["addr"] = df.get("street_address", "South Shore")
                 df["report_date"] = pd.to_datetime(df.get("created_date", ""), errors="coerce")
                 df = df.dropna(subset=["lat", "lon"])
-                df = df[(df["lat"] > 41.70) & (df["lat"] < 41.780) & (df["lon"] < -87.558)]
+                df = df[(df["lat"] > 41.70) & (df["lat"] < 41.780)]
                 return df, True
     except Exception:
         pass
@@ -289,8 +289,13 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
-# Hard clip — never plot east of South Shore Drive regardless of data source or cache
-df = df[df["lon"] < -87.558]
+# Hard clip — South Shore Drive runs diagonally NW→SE.
+# At 71st St (lat 41.766) the Drive is at lon ≈ -87.548
+# At 79th St (lat 41.749) the Drive is at lon ≈ -87.560
+# Formula: lon_drive = -87.548 + 0.706 * (lat - 41.766)
+# We keep only points at least 0.003° west of the Drive (≈ 2 city blocks buffer)
+shore_drive_lon = -87.548 + 0.706 * (df["lat"] - 41.766)
+df = df[df["lon"] < shore_drive_lon - 0.003]
 
 m = folium.Map(
     location=[41.748, -87.580],
