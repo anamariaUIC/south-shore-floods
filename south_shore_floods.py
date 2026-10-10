@@ -189,10 +189,11 @@ def _nearest_address(lat, lon):
     # Find nearest avenue (longitude) — choose pool based on lon
     pool = _AVENUES if lon > -87.590 else _AVENUES_WEST
     best_av = min(pool, key=lambda a: abs(a[2] - lon))
-    # House number: prefix + small offset (even numbers on east, odd on west)
+    # House number: use the avenue's block number + small even offset (0–50)
+    # Do NOT compute from longitude delta — that pushes numbers into the lake
     base = int(best_av[0])
-    delta = round(abs(lon - best_av[2]) / 0.0005) * 2   # ~2 per half-block
-    house = base + min(delta, 98)
+    offset = random.choice([0, 2, 4, 8, 12, 18, 24, 32, 44, 50])
+    house = base + offset
     zip_code = "60649" if lon > -87.590 else "60619"
     return f"{house} {best_st[0]}, CHICAGO IL {zip_code}"
 
