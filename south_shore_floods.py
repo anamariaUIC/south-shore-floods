@@ -374,11 +374,12 @@ m = folium.Map(
 # Coordinates are intentionally presented as an approximate conceptual alignment,
 # not as surveyed engineering coordinates.
 breakwater_line = [
-    [41.76405, -87.55490],  # offshore near E 72nd St
-    [41.76365, -87.55445],
-    [41.76320, -87.55405],
-    [41.76275, -87.55370],
-    [41.76230, -87.55345],  # offshore near E 73rd Pl
+    [41.76475, -87.55905],  # offshore from E 72nd St
+    [41.76445, -87.55872],
+    [41.76412, -87.55840],
+    [41.76378, -87.55808],
+    [41.76345, -87.55778],
+    [41.76312, -87.55750],  # offshore from E 73rd Pl
 ]
 
 folium.PolyLine(
