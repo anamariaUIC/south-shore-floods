@@ -159,15 +159,15 @@ _fallback_rows = (
     _pts(180, 41.748, 41.775, -87.586, -87.565, "Water in Basement Complaint") +
     _pts(60,  41.748, 41.775, -87.586, -87.565, "Water On Street Complaint")   +
     # South Shore lakefront residential (71st–79th St, east of Stony Island)
-    # Eastern boundary -87.552 = just west of South Shore Drive (keeps dots off beach/lake)
-    _pts(55,  41.749, 41.766, -87.562, -87.552, "Water in Basement Complaint") +
-    _pts(20,  41.749, 41.766, -87.562, -87.552, "Water On Street Complaint")   +
+    # Eastern boundary -87.560 = safely west of South Shore Drive across all latitudes
+    _pts(55,  41.749, 41.766, -87.572, -87.560, "Water in Basement Complaint") +
+    _pts(20,  41.749, 41.766, -87.572, -87.560, "Water On Street Complaint")   +
     # Woodlawn (ca 42) — north of South Shore
     _pts(40,  41.775, 41.793, -87.607, -87.588, "Water in Basement Complaint") +
     _pts(20,  41.775, 41.793, -87.607, -87.588, "Water On Street Complaint")   +
     # South Chicago / East Side (75th–87th St, stays west of South Shore Dr)
-    _pts(35,  41.722, 41.749, -87.562, -87.552, "Water in Basement Complaint") +
-    _pts(12,  41.722, 41.749, -87.562, -87.552, "Water On Street Complaint")   +
+    _pts(35,  41.722, 41.749, -87.572, -87.560, "Water in Basement Complaint") +
+    _pts(12,  41.722, 41.749, -87.572, -87.560, "Water On Street Complaint")   +
     # Avalon Park / Calumet Heights (ca 45/48)
     _pts(30,  41.722, 41.748, -87.590, -87.565, "Water in Basement Complaint") +
     _pts(12,  41.722, 41.748, -87.590, -87.565, "Water On Street Complaint")   +
@@ -213,7 +213,7 @@ def fetch_south_shore_311():
         "$order": "created_date DESC",
         "$where": (
             "latitude > 41.700 AND latitude < 41.780 "  # south of 63rd St
-            "AND longitude > -87.660 AND longitude < -87.548 "  # stop west of South Shore Drive
+            "AND longitude > -87.660 AND longitude < -87.558 "  # well west of South Shore Drive
             "AND latitude IS NOT NULL "
             "AND longitude IS NOT NULL"
         ),
@@ -235,7 +235,7 @@ def fetch_south_shore_311():
                 df["addr"] = df.get("street_address", "South Shore")
                 df["report_date"] = pd.to_datetime(df.get("created_date", ""), errors="coerce")
                 df = df.dropna(subset=["lat", "lon"])
-                df = df[(df["lat"] > 41.70) & (df["lat"] < 41.780) & (df["lon"] < -87.548)]
+                df = df[(df["lat"] > 41.70) & (df["lat"] < 41.780) & (df["lon"] < -87.558)]
                 return df, True
     except Exception:
         pass
@@ -288,6 +288,9 @@ st.markdown(f"""
   {"" if live else "<em>(Live API unavailable from this server — showing representative 311 data.)</em>"}
 </div>
 """, unsafe_allow_html=True)
+
+# Hard clip — never plot east of South Shore Drive regardless of data source or cache
+df = df[df["lon"] < -87.558]
 
 m = folium.Map(
     location=[41.748, -87.580],
