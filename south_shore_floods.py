@@ -155,10 +155,24 @@ def _pts(n, lat_lo, lat_hi, lon_lo, lon_hi, ftype):
     return rows
 
 _fallback_rows = (
+    # South Shore (community area 43) — densest cluster
     _pts(180, 41.748, 41.775, -87.586, -87.565, "Water in Basement Complaint") +
     _pts(60,  41.748, 41.775, -87.586, -87.565, "Water On Street Complaint")   +
+    # Woodlawn (ca 42) — north of South Shore
     _pts(40,  41.775, 41.793, -87.607, -87.588, "Water in Basement Complaint") +
-    _pts(20,  41.775, 41.793, -87.607, -87.588, "Water On Street Complaint")
+    _pts(20,  41.775, 41.793, -87.607, -87.588, "Water On Street Complaint")   +
+    # South Chicago / East Side lakefront (fills the orange box gap)
+    _pts(50,  41.722, 41.755, -87.562, -87.538, "Water in Basement Complaint") +
+    _pts(20,  41.722, 41.755, -87.562, -87.538, "Water On Street Complaint")   +
+    # Avalon Park / Calumet Heights (ca 45/48)
+    _pts(35,  41.722, 41.748, -87.590, -87.565, "Water in Basement Complaint") +
+    _pts(15,  41.722, 41.748, -87.590, -87.565, "Water On Street Complaint")   +
+    # Grand Crossing / Greater Grand Crossing (ca 69/70)
+    _pts(30,  41.748, 41.770, -87.620, -87.595, "Water in Basement Complaint") +
+    _pts(10,  41.748, 41.770, -87.620, -87.595, "Water On Street Complaint")   +
+    # Chatham / Avalon south (ca 44/45)
+    _pts(25,  41.705, 41.722, -87.608, -87.570, "Water in Basement Complaint") +
+    _pts(10,  41.705, 41.722, -87.608, -87.570, "Water On Street Complaint")
 )
 FALLBACK_DF = pd.DataFrame(_fallback_rows)
 
@@ -191,10 +205,11 @@ st.markdown("""
 @st.cache_data(ttl=3600, show_spinner=False)
 def fetch_south_shore_311():
     params = {
-        "$limit": 5000,
+        "$limit": 10000,
         "$order": "created_date DESC",
         "$where": (
-            "community_area='43' "
+            "latitude > 41.700 AND latitude < 41.780 "  # south of 63rd St
+            "AND longitude > -87.660 AND longitude < -87.520 "
             "AND latitude IS NOT NULL "
             "AND longitude IS NOT NULL"
         ),
@@ -216,7 +231,7 @@ def fetch_south_shore_311():
                 df["addr"] = df.get("street_address", "South Shore")
                 df["report_date"] = pd.to_datetime(df.get("created_date", ""), errors="coerce")
                 df = df.dropna(subset=["lat", "lon"])
-                df = df[(df["lat"] > 41.70) & (df["lat"] < 41.82)]
+                df = df[(df["lat"] > 41.70) & (df["lat"] < 41.780)]
                 return df, True
     except Exception:
         pass
@@ -257,7 +272,7 @@ st.markdown(f"""
 
 # ── MAP (top of page) ──────────────────────────────────────────────────────────
 st.markdown('<div class="content-section" id="map">', unsafe_allow_html=True)
-st.markdown('<div class="section-head">311 Water in Basement Complaints — South Shore</div>', unsafe_allow_html=True)
+st.markdown('<div class="section-head">311 Water in Basement Complaints — South Side (South of 63rd St)</div>', unsafe_allow_html=True)
 st.markdown(f"""
 <div class="section-sub">
   {"Live data from the" if live else "Representative sample from the"}
@@ -271,8 +286,8 @@ st.markdown(f"""
 """, unsafe_allow_html=True)
 
 m = folium.Map(
-    location=[41.762, -87.572],
-    zoom_start=13,
+    location=[41.748, -87.580],
+    zoom_start=12,
     tiles="OpenStreetMap",
     control_scale=True,
     prefer_canvas=True,
