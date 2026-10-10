@@ -374,11 +374,11 @@ m = folium.Map(
 # Coordinates are intentionally presented as an approximate conceptual alignment,
 # not as surveyed engineering coordinates.
 breakwater_line = [
-    [41.76455, -87.55715],  # lakeward of E 72nd Place
-    [41.76435, -87.55695],
-    [41.76412, -87.55672],
-    [41.76388, -87.55648],
-    [41.76365, -87.55625],  # lakeward of E 73rd Place
+    [41.76605, -87.55715],
+    [41.76585, -87.55695],
+    [41.76562, -87.55672],
+    [41.76538, -87.55648],
+    [41.76515, -87.55625],
 ]
 
 folium.PolyLine(
