@@ -293,11 +293,11 @@ st.markdown(f"""
 # Polygon traces South Shore land boundary, excluding beach and lake
 _LAND_POLY = [
     (-87.590, 41.780),  # NW near 63rd/Stony Island
-    (-87.548, 41.773),  # NE near 67th/lakefront
-    (-87.543, 41.766),  # lakefront at 71st St
-    (-87.548, 41.762),  # Shore Drive curves SE
-    (-87.554, 41.756),  # Shore Drive at 75th St
-    (-87.560, 41.749),  # Shore Drive at 79th St
+    (-87.553, 41.773),  # NE near 67th St — west of Shore Drive
+    (-87.550, 41.766),  # 71st St — stays west of Shore Drive
+    (-87.553, 41.762),  # Shore Drive curves SE at 73rd
+    (-87.557, 41.756),  # Shore Drive at 75th St
+    (-87.562, 41.749),  # Shore Drive at 79th St
     (-87.590, 41.748),  # SW near 79th/Stony Island
 ]
 
@@ -357,17 +357,27 @@ def flood_color(ft):
 
 for _, row in df.iterrows():
     color = flood_color(row["flood_type"])
-    tooltip = (
-        f"<b>{row.get('flood_type','Flooding complaint')}</b><br>"
-        f"{row.get('addr','')}<br>"
-        f"Date: {str(row.get('report_date',''))[:10]}"
+    addr  = row.get('addr', '')
+    ftype = row.get('flood_type', 'Flooding complaint')
+    rdate = str(row.get('report_date', ''))[:10]
+    lat_s = f"{row['lat']:.5f}"
+    lon_s = f"{row['lon']:.5f}"
+    tooltip = f"<b>{ftype}</b><br>{addr}<br>{rdate}"
+    popup_html = (
+        f"<div style='font-family:Arial,sans-serif;font-size:13px;min-width:180px'>"
+        f"<b style='color:#6D071A'>{ftype}</b><br>"
+        f"📍 {addr}<br>"
+        f"📅 {rdate}<br>"
+        f"<span style='color:#888;font-size:11px'>({lat_s}, {lon_s})</span>"
+        f"</div>"
     )
     folium.CircleMarker(
         location=[row["lat"], row["lon"]],
-        radius=4,
+        radius=5,
         color=color, fill=True, fill_color=color,
-        fill_opacity=0.7, opacity=0.85, weight=0,
+        fill_opacity=0.75, opacity=0.9, weight=0,
         tooltip=tooltip,
+        popup=folium.Popup(popup_html, max_width=260),
     ).add_to(m)
 
 # Legend
