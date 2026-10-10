@@ -141,15 +141,72 @@ html, body, [class*="css"] {
 import random
 random.seed(42)
 
+# South Shore / surrounding area street grid
+# (house number prefix, street name, approximate longitude)
+_AVENUES = [
+    ("1900", "S JEFFERY BLVD",  -87.5800),
+    ("2100", "S LUELLA AVE",    -87.5760),
+    ("2200", "S CRANDON AVE",   -87.5740),
+    ("2300", "S OGLESBY AVE",   -87.5720),
+    ("2400", "S PHILLIPS AVE",  -87.5700),
+    ("2500", "S ESSEX AVE",     -87.5675),
+    ("2600", "S KINGSTON AVE",  -87.5655),
+    ("2700", "S COLFAX AVE",    -87.5635),
+    ("2800", "S CLYDE AVE",     -87.5615),
+    ("2900", "S CHAPPEL AVE",   -87.5595),
+    ("3000", "S PAXTON AVE",    -87.5575),
+    ("3100", "S MERRILL AVE",   -87.5555),
+]
+# (street name, approximate latitude)
+_STREETS = [
+    ("E 63RD ST",  41.7795), ("E 64TH ST",  41.7777),
+    ("E 65TH ST",  41.7759), ("E 66TH ST",  41.7741),
+    ("E 67TH ST",  41.7723), ("E 68TH ST",  41.7705),
+    ("E 69TH ST",  41.7688), ("E 70TH ST",  41.7670),
+    ("E 71ST ST",  41.7655), ("E 72ND ST",  41.7637),
+    ("E 72ND PL",  41.7628), ("E 73RD ST",  41.7619),
+    ("E 74TH ST",  41.7601), ("E 75TH ST",  41.7583),
+    ("E 76TH ST",  41.7565), ("E 77TH ST",  41.7547),
+    ("E 78TH ST",  41.7529), ("E 79TH ST",  41.7511),
+    ("E 80TH ST",  41.7493), ("E 81ST ST",  41.7475),
+    ("E 82ND ST",  41.7457), ("E 83RD ST",  41.7439),
+    ("E 84TH ST",  41.7421), ("E 85TH ST",  41.7403),
+    ("E 87TH ST",  41.7367),
+]
+# West-of-Stony-Island avenues (west side of the study area)
+_AVENUES_WEST = [
+    ("1200", "S STONY ISLAND AVE", -87.5880),
+    ("1400", "S COTTAGE GROVE AVE",-87.6060),
+    ("1600", "S DREXEL AVE",       -87.6025),
+    ("1700", "S DOBSON AVE",       -87.5985),
+    ("1800", "S EUCLID AVE",       -87.5960),
+]
+
+def _nearest_address(lat, lon):
+    """Return closest real-sounding address for a lat/lon."""
+    # Find nearest street (latitude)
+    best_st = min(_STREETS, key=lambda s: abs(s[1] - lat))
+    # Find nearest avenue (longitude) — choose pool based on lon
+    pool = _AVENUES if lon > -87.590 else _AVENUES_WEST
+    best_av = min(pool, key=lambda a: abs(a[2] - lon))
+    # House number: prefix + small offset (even numbers on east, odd on west)
+    base = int(best_av[0])
+    delta = round(abs(lon - best_av[2]) / 0.0005) * 2   # ~2 per half-block
+    house = base + min(delta, 98)
+    zip_code = "60649" if lon > -87.590 else "60619"
+    return f"{house} {best_st[0]}, CHICAGO IL {zip_code}"
+
 def _pts(n, lat_lo, lat_hi, lon_lo, lon_hi, ftype):
     rows = []
     for _ in range(n):
+        lat = round(random.uniform(lat_lo, lat_hi), 5)
+        lon = round(random.uniform(lon_lo, lon_hi), 5)
         rows.append({
-            "lat": round(random.uniform(lat_lo, lat_hi), 5),
-            "lon": round(random.uniform(lon_lo, lon_hi), 5),
+            "lat": lat,
+            "lon": lon,
             "ca": 43,
             "flood_type": ftype,
-            "addr": "South Shore, Chicago IL",
+            "addr": _nearest_address(lat, lon),
             "report_date": "2023-08-01",
         })
     return rows
