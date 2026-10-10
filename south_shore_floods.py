@@ -352,7 +352,7 @@ st.markdown(f"""
   target="_blank" style="color:#0a2240">Chicago Data Portal</a>.
   <strong style="color:{BURGUNDY}">Burgundy</strong> = basement flooding ·
   <strong style="color:{NAVY}">Navy</strong> = street flooding.
-  The orange line marks the approximate proposed $5 million breakwater wall alignment along the lakefront between East 72nd Street and East 73rd Place.<br>  <strong>Map scope:</strong> all geocoded AAF (Water in Basement) and AAE (Water on Street) records returned by Chicago 311 for Community Area 43.
+  The orange line marks the approximate proposed $5 million breakwater wall alignment along the lakefront between East 72nd Place and East 73rd Place.<br>  <strong>Map scope:</strong> all geocoded AAF (Water in Basement) and AAE (Water on Street) records returned by Chicago 311 for Community Area 43.
   {"" if live else "<em>(City API currently unavailable — no complaint points are shown.)</em>"}
 </div>
 """, unsafe_allow_html=True)
@@ -368,18 +368,17 @@ m = folium.Map(
 )
 
 # Proposed $5M breakwater wall — approximate alignment shown in the
-# City's conceptual shoreline graphic, from East 72nd Street to East 73rd Place.
+# City's conceptual shoreline graphic, from East 72nd Place to East 73rd Place.
 # This replaces the former orange rectangular "project zone".
 #
 # Coordinates are intentionally presented as an approximate conceptual alignment,
 # not as surveyed engineering coordinates.
 breakwater_line = [
-    [41.76475, -87.55905],  # offshore from E 72nd St
-    [41.76445, -87.55872],
-    [41.76412, -87.55840],
-    [41.76378, -87.55808],
-    [41.76345, -87.55778],
-    [41.76312, -87.55750],  # offshore from E 73rd Pl
+    [41.76325, -87.56015],  # offshore at E 72nd Place
+    [41.76305, -87.55995],
+    [41.76282, -87.55972],
+    [41.76258, -87.55948],
+    [41.76235, -87.55925],  # offshore at E 73rd Place
 ]
 
 folium.PolyLine(
