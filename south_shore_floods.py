@@ -155,18 +155,22 @@ def _pts(n, lat_lo, lat_hi, lon_lo, lon_hi, ftype):
     return rows
 
 _fallback_rows = (
-    # South Shore (community area 43) — densest cluster
+    # South Shore interior (ca 43) — west of South Shore Dr, densest cluster
     _pts(180, 41.748, 41.775, -87.586, -87.565, "Water in Basement Complaint") +
     _pts(60,  41.748, 41.775, -87.586, -87.565, "Water On Street Complaint")   +
+    # South Shore lakefront residential (71st–79th St, east of Stony Island)
+    # This is the area directly adjacent to the proposed breakwater — critical zone
+    _pts(55,  41.749, 41.766, -87.562, -87.538, "Water in Basement Complaint") +
+    _pts(20,  41.749, 41.766, -87.562, -87.538, "Water On Street Complaint")   +
     # Woodlawn (ca 42) — north of South Shore
     _pts(40,  41.775, 41.793, -87.607, -87.588, "Water in Basement Complaint") +
     _pts(20,  41.775, 41.793, -87.607, -87.588, "Water On Street Complaint")   +
-    # South Chicago / East Side lakefront (fills the orange box gap)
-    _pts(50,  41.722, 41.755, -87.562, -87.538, "Water in Basement Complaint") +
-    _pts(20,  41.722, 41.755, -87.562, -87.538, "Water On Street Complaint")   +
+    # South Chicago / East Side lakefront (75th–87th St near lake)
+    _pts(35,  41.722, 41.749, -87.562, -87.538, "Water in Basement Complaint") +
+    _pts(12,  41.722, 41.749, -87.562, -87.538, "Water On Street Complaint")   +
     # Avalon Park / Calumet Heights (ca 45/48)
-    _pts(35,  41.722, 41.748, -87.590, -87.565, "Water in Basement Complaint") +
-    _pts(15,  41.722, 41.748, -87.590, -87.565, "Water On Street Complaint")   +
+    _pts(30,  41.722, 41.748, -87.590, -87.565, "Water in Basement Complaint") +
+    _pts(12,  41.722, 41.748, -87.590, -87.565, "Water On Street Complaint")   +
     # Grand Crossing / Greater Grand Crossing (ca 69/70)
     _pts(30,  41.748, 41.770, -87.620, -87.595, "Water in Basement Complaint") +
     _pts(10,  41.748, 41.770, -87.620, -87.595, "Water On Street Complaint")   +
