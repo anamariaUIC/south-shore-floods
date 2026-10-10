@@ -13,7 +13,6 @@ import folium
 from folium.plugins import HeatMap
 from streamlit_folium import st_folium
 from datetime import date
-from shapely.geometry import Point, Polygon
 
 st.set_page_config(
     page_title="South Shore Floods | Report Your Experience",
@@ -290,8 +289,9 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
-# Hard clip using exact land polygon — keeps dots on land, excludes beach and lake
-_LAND = Polygon([
+# Hard clip using ray-casting point-in-polygon (no external libraries)
+# Polygon traces South Shore land boundary, excluding beach and lake
+_LAND_POLY = [
     (-87.590, 41.780),  # NW near 63rd/Stony Island
     (-87.548, 41.773),  # NE near 67th/lakefront
     (-87.543, 41.766),  # lakefront at 71st St
@@ -299,8 +299,21 @@ _LAND = Polygon([
     (-87.554, 41.756),  # Shore Drive at 75th St
     (-87.560, 41.749),  # Shore Drive at 79th St
     (-87.590, 41.748),  # SW near 79th/Stony Island
-])
-df = df[df.apply(lambda r: _LAND.contains(Point(r["lon"], r["lat"])), axis=1)]
+]
+
+def _point_in_poly(lon, lat, poly):
+    """Ray-casting algorithm — no external dependencies."""
+    n = len(poly)
+    inside = False
+    x, y = lon, lat
+    px, py = poly[-1]
+    for cx, cy in poly:
+        if ((cy > y) != (py > y)) and (x < (px - cx) * (y - cy) / (py - cy) + cx):
+            inside = not inside
+        px, py = cx, cy
+    return inside
+
+df = df[df.apply(lambda r: _point_in_poly(r["lon"], r["lat"], _LAND_POLY), axis=1)]
 
 m = folium.Map(
     location=[41.748, -87.580],
