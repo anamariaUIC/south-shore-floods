@@ -136,159 +136,179 @@ html, body, [class*="css"] {
 </style>
 """, unsafe_allow_html=True)
 
-# ── Data fallback policy ──────────────────────────────────────────────────────
-# IMPORTANT: Never fabricate 311 complaint points, dates, or addresses.
-# If the City API is unavailable, the app shows an unavailable-data message
-# instead of synthetic records that could be mistaken for official complaints.
-FALLBACK_DF = pd.DataFrame(
+# ── Official Chicago 311 flooding data ───────────────────────────────────────
+# South Shore = Chicago Community Area 43.
+# We query flooding service requests directly and paginate until all matching
+# records returned by the City API have been retrieved. Nothing is synthesized.
+
+EMPTY_DF = pd.DataFrame(
     columns=["lat", "lon", "ca", "flood_type", "addr", "report_date"]
 )
 
-# ── Nav ────────────────────────────────────────────────────────────────────────
-st.markdown("""
-<div class="topnav">
-  <span class="topnav-brand">🌊 South Shore Floods</span>
-  <a href="#about">About</a>
-  <a href="#map">311 Map</a>
-  <a href="#report">Report Flooding</a>
-  <a href="http://bit.ly/4ukCmjg" target="_blank">✍️ Sign the Petition</a>
-</div>
-""", unsafe_allow_html=True)
-
-# ── Hero ───────────────────────────────────────────────────────────────────────
-st.markdown("""
-<div class="hero-band">
-  <h1>Why Are <span>$5 Million Going Into the Lake</span><br>While Our Basements Flood?</h1>
-  <p>South Shore deserves investments that solve the flooding we live with — every year.
-     The data below shows what residents have already reported to 311.</p>
-</div>
-<div class="petition-banner">
-  <p>Construction on the lakefront breakwater project is assumed to start <strong>Fall 2026</strong>.
-     The window to intervene is narrow. Sign now.</p>
-  <a href="http://bit.ly/4ukCmjg" target="_blank">✍️ SIGN THE PETITION — bit.ly/4ukCmjg</a>
-</div>
-""", unsafe_allow_html=True)
-
-# ── Live 311 fetch ─────────────────────────────────────────────────────────────
 @st.cache_data(ttl=3600, show_spinner=False)
 def fetch_south_shore_311():
-    """Fetch official Chicago 311 flooding complaints. Never fabricate records."""
-    api_urls = [
-        "https://data.cityofchicago.org/resource/v6vf-nfxy.json",
-        "https://data.cityofchicago.org/resource/qrmr-m89j.json",
+    """
+    Retrieve official Chicago 311 Water in Basement / Water on Street requests
+    for South Shore (Community Area 43).
+
+    The current 311 dataset is queried first. The legacy flooding-specific
+    dataset is used only if the current endpoint cannot supply usable records.
+    No addresses, dates, coordinates, or complaints are generated locally.
+    """
+    endpoints = [
+        {
+            "url": "https://data.cityofchicago.org/resource/v6vf-nfxy.json",
+            "where": (
+                "community_area = '43' "
+                "AND sr_short_code IN ('AAF','AAE') "
+                "AND latitude IS NOT NULL "
+                "AND longitude IS NOT NULL"
+            ),
+        },
+        {
+            "url": "https://data.cityofchicago.org/resource/qrmr-m89j.json",
+            "where": (
+                "community_area = '43' "
+                "AND latitude IS NOT NULL "
+                "AND longitude IS NOT NULL "
+                "AND (sr_type = 'Water in Basement Complaint' "
+                "OR sr_type = 'Water On Street Complaint')"
+            ),
+        },
     ]
+
+    page_size = 5000
     errors = []
 
-    for api_url in api_urls:
+    for endpoint in endpoints:
+        rows = []
+        offset = 0
+
         try:
-            params = {
-                "$limit": 50000,
-                "$where": (
-                    "latitude > 41.700 AND latitude < 41.800 "
-                    "AND longitude > -87.660 AND longitude < -87.540 "
-                    "AND latitude IS NOT NULL AND longitude IS NOT NULL"
-                ),
-            }
-            r = requests.get(
-                api_url, params=params, timeout=30,
-                headers={"User-Agent": "SouthShoreFloods/1.0"},
-            )
-            r.raise_for_status()
-            data = r.json()
-            if not data:
-                errors.append(f"{api_url}: no records returned")
+            while True:
+                params = {
+                    "$limit": page_size,
+                    "$offset": offset,
+                    "$order": "created_date DESC",
+                    "$where": endpoint["where"],
+                }
+
+                response = requests.get(
+                    endpoint["url"],
+                    params=params,
+                    timeout=30,
+                    headers={"User-Agent": "SouthShoreFloods/1.0"},
+                )
+                response.raise_for_status()
+                page = response.json()
+
+                if not page:
+                    break
+
+                rows.extend(page)
+
+                if len(page) < page_size:
+                    break
+
+                offset += page_size
+
+            if not rows:
+                errors.append(f"{endpoint['url']}: no matching records returned")
                 continue
 
-            df = pd.DataFrame(data)
+            df = pd.DataFrame(rows)
             df.columns = [str(c).lower() for c in df.columns]
 
             if "latitude" not in df.columns or "longitude" not in df.columns:
-                errors.append(f"{api_url}: coordinate fields missing")
+                errors.append(f"{endpoint['url']}: coordinate fields missing")
                 continue
 
             df["lat"] = pd.to_numeric(df["latitude"], errors="coerce")
             df["lon"] = pd.to_numeric(df["longitude"], errors="coerce")
 
-            if "sr_type" in df.columns:
-                type_text = df["sr_type"].fillna("").astype(str)
-            elif "service_request_type" in df.columns:
-                type_text = df["service_request_type"].fillna("").astype(str)
-            else:
-                type_text = pd.Series("", index=df.index)
-
-            if "sr_short_code" in df.columns:
-                short_text = df["sr_short_code"].fillna("").astype(str)
-            else:
-                short_text = pd.Series("", index=df.index)
-
-            flooding_mask = (
-                type_text.str.contains(
-                    r"water.*basement|water.*street|flood",
-                    case=False, regex=True, na=False
-                )
-                | short_text.str.upper().isin(["AAF", "AAE"])
-            )
-            df = df[flooding_mask].copy()
-
-            if df.empty:
-                errors.append(f"{api_url}: no flooding complaints found")
-                continue
-
+            # Complaint type: prefer City's descriptive field.
             if "sr_type" in df.columns:
                 df["flood_type"] = df["sr_type"].fillna("Flooding complaint")
-            else:
+            elif "sr_short_code" in df.columns:
                 code_map = {
                     "AAF": "Water in Basement Complaint",
                     "AAE": "Water On Street Complaint",
                 }
                 df["flood_type"] = (
-                    short_text.loc[df.index].str.upper().map(code_map)
-                    .fillna(type_text.loc[df.index])
-                    .replace("", "Flooding complaint")
+                    df["sr_short_code"].astype(str).str.upper().map(code_map)
+                    .fillna("Flooding complaint")
                 )
+            else:
+                df["flood_type"] = "Flooding complaint"
 
-            address_col = next(
-                (c for c in ["street_address", "address"] if c in df.columns),
-                None
-            )
-            if address_col:
-                df["addr"] = df[address_col].fillna(
-                    "Address not provided by Chicago 311"
-                ).astype(str)
+            # Use only the City's address.
+            if "street_address" in df.columns:
+                df["addr"] = (
+                    df["street_address"]
+                    .fillna("Address not provided by Chicago 311")
+                    .astype(str)
+                )
             else:
                 df["addr"] = "Address not provided by Chicago 311"
 
-            date_col = next(
-                (c for c in ["created_date", "creation_date", "created_at"]
-                 if c in df.columns),
-                None
-            )
-            if date_col:
-                df["report_date"] = pd.to_datetime(df[date_col], errors="coerce")
+            # Use only the City's creation date.
+            if "created_date" in df.columns:
+                df["report_date"] = pd.to_datetime(
+                    df["created_date"], errors="coerce"
+                )
             else:
                 df["report_date"] = pd.NaT
 
             if "community_area" in df.columns:
-                df["ca"] = pd.to_numeric(df["community_area"], errors="coerce")
+                df["ca"] = pd.to_numeric(
+                    df["community_area"], errors="coerce"
+                )
             else:
-                df["ca"] = pd.NA
+                # The query itself restricted the response to CA 43.
+                df["ca"] = 43
 
             df = df.dropna(subset=["lat", "lon"]).copy()
-            if not df.empty:
-                return df, True, None
 
-        except Exception as exc:
-            errors.append(f"{api_url}: {exc}")
+            # Defensive validation: retain CA 43 if the field is present.
+            if "community_area" in df.columns:
+                df = df[df["ca"] == 43].copy()
 
-    return None, False, " | ".join(errors)
+            if df.empty:
+                errors.append(
+                    f"{endpoint['url']}: matching records had no usable coordinates"
+                )
+                continue
+
+            # Remove exact duplicate service-request rows when a request ID is
+            # available. Do NOT collapse separate complaints at the same address.
+            id_col = next(
+                (
+                    c for c in [
+                        "sr_number",
+                        "service_request_number",
+                        "service_request_id",
+                    ]
+                    if c in df.columns
+                ),
+                None,
+            )
+            if id_col:
+                df = df.drop_duplicates(subset=[id_col], keep="first")
+
+            return df.reset_index(drop=True), True, None
+
+        except requests.RequestException as exc:
+            errors.append(f"{endpoint['url']}: {exc}")
+        except (ValueError, TypeError, KeyError) as exc:
+            errors.append(f"{endpoint['url']}: could not parse response ({exc})")
+
+    return EMPTY_DF.copy(), False, " | ".join(errors)
 
 
-with st.spinner("Loading official Chicago 311 flooding data..."):
+with st.spinner("Loading official Chicago 311 flooding data for South Shore..."):
     df, live, api_error = fetch_south_shore_311()
 
-if df is None or df.empty:
-    df = FALLBACK_DF.copy()
-    live = False
+if not live:
     st.warning(
         "Official Chicago 311 flooding data is temporarily unavailable. "
         "No synthetic complaint locations are being displayed."
@@ -324,44 +344,21 @@ st.markdown(f"""
 
 # ── MAP (top of page) ──────────────────────────────────────────────────────────
 st.markdown('<div class="content-section" id="map">', unsafe_allow_html=True)
-st.markdown('<div class="section-head">311 Water in Basement Complaints — South Side (South of 63rd St)</div>', unsafe_allow_html=True)
+st.markdown('<div class="section-head">311 Flooding Complaints — South Shore (Community Area 43)</div>', unsafe_allow_html=True)
 st.markdown(f"""
 <div class="section-sub">
-  Official complaint records from the
+  Official Water in Basement and Water on Street complaint records for South Shore (Community Area 43) from the
   <a href="https://data.cityofchicago.org/Service-Requests/Flooding-Complaints-to-311/qrmr-m89j"
   target="_blank" style="color:#0a2240">Chicago Data Portal</a>.
   <strong style="color:{BURGUNDY}">Burgundy</strong> = basement flooding ·
   <strong style="color:{NAVY}">Navy</strong> = street flooding.
-  The orange zone marks the proposed breakwater project area between 71st and 75th Street.
+  The orange zone marks the proposed breakwater project area between 71st and 75th Street.<br>  <strong>Map scope:</strong> all geocoded AAF (Water in Basement) and AAE (Water on Street) records returned by Chicago 311 for Community Area 43.
   {"" if live else "<em>(City API currently unavailable — no complaint points are shown.)</em>"}
 </div>
 """, unsafe_allow_html=True)
 
-# Hard clip using ray-casting point-in-polygon (no external libraries)
-# Polygon traces South Shore land boundary, excluding beach and lake
-_LAND_POLY = [
-    (-87.590, 41.780),  # NW near 63rd/Stony Island
-    (-87.553, 41.773),  # NE near 67th St — west of Shore Drive
-    (-87.550, 41.766),  # 71st St — stays west of Shore Drive
-    (-87.553, 41.762),  # Shore Drive curves SE at 73rd
-    (-87.557, 41.756),  # Shore Drive at 75th St
-    (-87.562, 41.749),  # Shore Drive at 79th St
-    (-87.590, 41.748),  # SW near 79th/Stony Island
-]
-
-def _point_in_poly(lon, lat, poly):
-    """Ray-casting algorithm — no external dependencies."""
-    n = len(poly)
-    inside = False
-    x, y = lon, lat
-    px, py = poly[-1]
-    for cx, cy in poly:
-        if ((cy > y) != (py > y)) and (x < (px - cx) * (y - cy) / (py - cy) + cx):
-            inside = not inside
-        px, py = cx, cy
-    return inside
-
-df = df[df.apply(lambda r: _point_in_poly(r["lon"], r["lat"], _LAND_POLY), axis=1)]
+# Geographic scope is defined by the City's Community Area 43 field.
+# No hand-drawn polygon clipping is applied.
 
 m = folium.Map(
     location=[41.748, -87.580],
