@@ -13,6 +13,7 @@ import folium
 from folium.plugins import HeatMap
 from streamlit_folium import st_folium
 from datetime import date
+from shapely.geometry import Point, Polygon
 
 st.set_page_config(
     page_title="South Shore Floods | Report Your Experience",
@@ -289,13 +290,17 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
-# Hard clip — South Shore Drive runs diagonally NW→SE.
-# At 71st St (lat 41.766) the Drive is at lon ≈ -87.548
-# At 79th St (lat 41.749) the Drive is at lon ≈ -87.560
-# Formula: lon_drive = -87.548 + 0.706 * (lat - 41.766)
-# We keep only points at least 0.003° west of the Drive (≈ 2 city blocks buffer)
-shore_drive_lon = -87.548 + 0.706 * (df["lat"] - 41.766)
-df = df[df["lon"] < shore_drive_lon - 0.003]
+# Hard clip using exact land polygon — keeps dots on land, excludes beach and lake
+_LAND = Polygon([
+    (-87.590, 41.780),  # NW near 63rd/Stony Island
+    (-87.548, 41.773),  # NE near 67th/lakefront
+    (-87.543, 41.766),  # lakefront at 71st St
+    (-87.548, 41.762),  # Shore Drive curves SE
+    (-87.554, 41.756),  # Shore Drive at 75th St
+    (-87.560, 41.749),  # Shore Drive at 79th St
+    (-87.590, 41.748),  # SW near 79th/Stony Island
+])
+df = df[df.apply(lambda r: _LAND.contains(Point(r["lon"], r["lat"])), axis=1)]
 
 m = folium.Map(
     location=[41.748, -87.580],
