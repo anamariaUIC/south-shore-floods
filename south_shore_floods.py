@@ -213,7 +213,7 @@ def fetch_south_shore_311():
         "$order": "created_date DESC",
         "$where": (
             "latitude > 41.700 AND latitude < 41.780 "  # south of 63rd St
-            "AND longitude > -87.660 AND longitude < -87.520 "
+            "AND longitude > -87.660 AND longitude < -87.548 "  # stop west of South Shore Drive
             "AND latitude IS NOT NULL "
             "AND longitude IS NOT NULL"
         ),
@@ -235,7 +235,7 @@ def fetch_south_shore_311():
                 df["addr"] = df.get("street_address", "South Shore")
                 df["report_date"] = pd.to_datetime(df.get("created_date", ""), errors="coerce")
                 df = df.dropna(subset=["lat", "lon"])
-                df = df[(df["lat"] > 41.70) & (df["lat"] < 41.780) & (df["lon"] < -87.525)]
+                df = df[(df["lat"] > 41.70) & (df["lat"] < 41.780) & (df["lon"] < -87.548)]
                 return df, True
     except Exception:
         pass
