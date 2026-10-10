@@ -136,109 +136,13 @@ html, body, [class*="css"] {
 </style>
 """, unsafe_allow_html=True)
 
-# ── Embedded fallback data (used when live API is blocked) ─────────────────────
-# Real South Shore / Woodlawn street grid coordinates, basement flooding
-import random
-random.seed(42)
-
-# South Shore / surrounding area street grid
-# (house number prefix, street name, approximate longitude)
-_AVENUES = [
-    ("1900", "S JEFFERY BLVD",  -87.5800),
-    ("2100", "S LUELLA AVE",    -87.5760),
-    ("2200", "S CRANDON AVE",   -87.5740),
-    ("2300", "S OGLESBY AVE",   -87.5720),
-    ("2400", "S PHILLIPS AVE",  -87.5700),
-    ("2500", "S ESSEX AVE",     -87.5675),
-    ("2600", "S KINGSTON AVE",  -87.5655),
-    ("2700", "S COLFAX AVE",    -87.5635),
-    ("2800", "S CLYDE AVE",     -87.5615),
-    ("2900", "S CHAPPEL AVE",   -87.5595),
-    ("3000", "S PAXTON AVE",    -87.5575),
-    ("3100", "S MERRILL AVE",   -87.5555),
-]
-# (street name, approximate latitude)
-_STREETS = [
-    ("E 63RD ST",  41.7795), ("E 64TH ST",  41.7777),
-    ("E 65TH ST",  41.7759), ("E 66TH ST",  41.7741),
-    ("E 67TH ST",  41.7723), ("E 68TH ST",  41.7705),
-    ("E 69TH ST",  41.7688), ("E 70TH ST",  41.7670),
-    ("E 71ST ST",  41.7655), ("E 72ND ST",  41.7637),
-    ("E 72ND PL",  41.7628), ("E 73RD ST",  41.7619),
-    ("E 74TH ST",  41.7601), ("E 75TH ST",  41.7583),
-    ("E 76TH ST",  41.7565), ("E 77TH ST",  41.7547),
-    ("E 78TH ST",  41.7529), ("E 79TH ST",  41.7511),
-    ("E 80TH ST",  41.7493), ("E 81ST ST",  41.7475),
-    ("E 82ND ST",  41.7457), ("E 83RD ST",  41.7439),
-    ("E 84TH ST",  41.7421), ("E 85TH ST",  41.7403),
-    ("E 87TH ST",  41.7367),
-]
-# West-of-Stony-Island avenues (west side of the study area)
-_AVENUES_WEST = [
-    ("1200", "S STONY ISLAND AVE", -87.5880),
-    ("1400", "S COTTAGE GROVE AVE",-87.6060),
-    ("1600", "S DREXEL AVE",       -87.6025),
-    ("1700", "S DOBSON AVE",       -87.5985),
-    ("1800", "S EUCLID AVE",       -87.5960),
-]
-
-def _nearest_address(lat, lon):
-    """Return closest real-sounding address for a lat/lon."""
-    # Find nearest street (latitude)
-    best_st = min(_STREETS, key=lambda s: abs(s[1] - lat))
-    # Find nearest avenue (longitude) — choose pool based on lon
-    pool = _AVENUES if lon > -87.590 else _AVENUES_WEST
-    best_av = min(pool, key=lambda a: abs(a[2] - lon))
-    # Use the avenue's own block number — that intersection always exists
-    house = int(best_av[0])
-    zip_code = "60649" if lon > -87.590 else "60619"
-    return f"{house} {best_st[0]}, CHICAGO IL {zip_code}"
-
-def _pts(n, lat_lo, lat_hi, lon_lo, lon_hi, ftype):
-    rows = []
-    for _ in range(n):
-        lat = round(random.uniform(lat_lo, lat_hi), 5)
-        lon = round(random.uniform(lon_lo, lon_hi), 5)
-        rows.append({
-            "lat": lat,
-            "lon": lon,
-            "ca": 43,
-            "flood_type": ftype,
-            "addr": _nearest_address(lat, lon),
-            "report_date": "2023-08-01",
-        })
-    return rows
-
-_fallback_rows = (
-    # South Shore interior (ca 43) — west of South Shore Dr, densest cluster
-    _pts(180, 41.748, 41.775, -87.586, -87.565, "Water in Basement Complaint") +
-    _pts(60,  41.748, 41.775, -87.586, -87.565, "Water On Street Complaint")   +
-    # South Shore lakefront residential (71st–79th St, east of Stony Island)
-    # Stay well west of Shore Drive — diagonal filter applied below will trim anything too close
-    _pts(55,  41.749, 41.766, -87.575, -87.555, "Water in Basement Complaint") +
-    _pts(20,  41.749, 41.766, -87.575, -87.555, "Water On Street Complaint")   +
-    # Woodlawn (ca 42) — north of South Shore
-    _pts(40,  41.775, 41.793, -87.607, -87.588, "Water in Basement Complaint") +
-    _pts(20,  41.775, 41.793, -87.607, -87.588, "Water On Street Complaint")   +
-    # South Chicago / East Side (75th–87th St, stays west of South Shore Dr)
-    _pts(35,  41.722, 41.749, -87.575, -87.555, "Water in Basement Complaint") +
-    _pts(12,  41.722, 41.749, -87.575, -87.555, "Water On Street Complaint")   +
-    # Avalon Park / Calumet Heights (ca 45/48)
-    _pts(30,  41.722, 41.748, -87.590, -87.565, "Water in Basement Complaint") +
-    _pts(12,  41.722, 41.748, -87.590, -87.565, "Water On Street Complaint")   +
-    # Grand Crossing / Greater Grand Crossing (ca 69/70)
-    _pts(30,  41.748, 41.770, -87.620, -87.595, "Water in Basement Complaint") +
-    _pts(10,  41.748, 41.770, -87.620, -87.595, "Water On Street Complaint")   +
-    # Chatham / Avalon south (ca 44/45)
-    _pts(25,  41.705, 41.722, -87.608, -87.570, "Water in Basement Complaint") +
-    _pts(10,  41.705, 41.722, -87.608, -87.570, "Water On Street Complaint")
+# ── Data fallback policy ──────────────────────────────────────────────────────
+# IMPORTANT: Never fabricate 311 complaint points, dates, or addresses.
+# If the City API is unavailable, the app shows an unavailable-data message
+# instead of synthetic records that could be mistaken for official complaints.
+FALLBACK_DF = pd.DataFrame(
+    columns=["lat", "lon", "ca", "flood_type", "addr", "report_date"]
 )
-# Known real 311 complaints — hardcoded so they always appear regardless of API
-_known_real = [
-    {"lat": 41.7632, "lon": -87.5660, "ca": 43, "flood_type": "Water in Basement Complaint",
-     "addr": "2564 E 72ND PL, CHICAGO IL 60649", "report_date": "2023-08-01"},
-]
-FALLBACK_DF = pd.DataFrame(_fallback_rows + _known_real)
 
 # ── Nav ────────────────────────────────────────────────────────────────────────
 st.markdown("""
@@ -268,63 +172,147 @@ st.markdown("""
 # ── Live 311 fetch ─────────────────────────────────────────────────────────────
 @st.cache_data(ttl=3600, show_spinner=False)
 def fetch_south_shore_311():
-    params = {
-        "$limit": 10000,
-        "$order": "created_date DESC",
-        "$where": (
-            "latitude > 41.700 AND latitude < 41.780 "  # south of 63rd St
-            "AND longitude > -87.660 AND longitude < -87.540 "
-            "AND latitude IS NOT NULL "
-            "AND longitude IS NOT NULL"
-        ),
-    }
-    try:
-        r = requests.get(
-            "https://data.cityofchicago.org/resource/qrmr-m89j.json",
-            params=params, timeout=15
-        )
-        if r.status_code == 200:
-            data = r.json()
-            if data:
-                df = pd.DataFrame(data)
-                df.columns = [c.lower() for c in df.columns]
-                df["lat"] = pd.to_numeric(df.get("latitude"), errors="coerce")
-                df["lon"] = pd.to_numeric(df.get("longitude"), errors="coerce")
-                df["ca"]  = 43
-                df["flood_type"] = df.get("sr_type", "Flooding")
-                df["addr"] = df.get("street_address", "South Shore")
-                df["report_date"] = pd.to_datetime(df.get("created_date", ""), errors="coerce")
-                df = df.dropna(subset=["lat", "lon"])
-                df = df[(df["lat"] > 41.70) & (df["lat"] < 41.780)]
-                return df, True
-    except Exception:
-        pass
-    return None, False
+    """Fetch official Chicago 311 flooding complaints. Never fabricate records."""
+    api_urls = [
+        "https://data.cityofchicago.org/resource/v6vf-nfxy.json",
+        "https://data.cityofchicago.org/resource/qrmr-m89j.json",
+    ]
+    errors = []
 
-with st.spinner("Loading 311 flooding data..."):
-    df, live = fetch_south_shore_311()
+    for api_url in api_urls:
+        try:
+            params = {
+                "$limit": 50000,
+                "$where": (
+                    "latitude > 41.700 AND latitude < 41.800 "
+                    "AND longitude > -87.660 AND longitude < -87.540 "
+                    "AND latitude IS NOT NULL AND longitude IS NOT NULL"
+                ),
+            }
+            r = requests.get(
+                api_url, params=params, timeout=30,
+                headers={"User-Agent": "SouthShoreFloods/1.0"},
+            )
+            r.raise_for_status()
+            data = r.json()
+            if not data:
+                errors.append(f"{api_url}: no records returned")
+                continue
+
+            df = pd.DataFrame(data)
+            df.columns = [str(c).lower() for c in df.columns]
+
+            if "latitude" not in df.columns or "longitude" not in df.columns:
+                errors.append(f"{api_url}: coordinate fields missing")
+                continue
+
+            df["lat"] = pd.to_numeric(df["latitude"], errors="coerce")
+            df["lon"] = pd.to_numeric(df["longitude"], errors="coerce")
+
+            if "sr_type" in df.columns:
+                type_text = df["sr_type"].fillna("").astype(str)
+            elif "service_request_type" in df.columns:
+                type_text = df["service_request_type"].fillna("").astype(str)
+            else:
+                type_text = pd.Series("", index=df.index)
+
+            if "sr_short_code" in df.columns:
+                short_text = df["sr_short_code"].fillna("").astype(str)
+            else:
+                short_text = pd.Series("", index=df.index)
+
+            flooding_mask = (
+                type_text.str.contains(
+                    r"water.*basement|water.*street|flood",
+                    case=False, regex=True, na=False
+                )
+                | short_text.str.upper().isin(["AAF", "AAE"])
+            )
+            df = df[flooding_mask].copy()
+
+            if df.empty:
+                errors.append(f"{api_url}: no flooding complaints found")
+                continue
+
+            if "sr_type" in df.columns:
+                df["flood_type"] = df["sr_type"].fillna("Flooding complaint")
+            else:
+                code_map = {
+                    "AAF": "Water in Basement Complaint",
+                    "AAE": "Water On Street Complaint",
+                }
+                df["flood_type"] = (
+                    short_text.loc[df.index].str.upper().map(code_map)
+                    .fillna(type_text.loc[df.index])
+                    .replace("", "Flooding complaint")
+                )
+
+            address_col = next(
+                (c for c in ["street_address", "address"] if c in df.columns),
+                None
+            )
+            if address_col:
+                df["addr"] = df[address_col].fillna(
+                    "Address not provided by Chicago 311"
+                ).astype(str)
+            else:
+                df["addr"] = "Address not provided by Chicago 311"
+
+            date_col = next(
+                (c for c in ["created_date", "creation_date", "created_at"]
+                 if c in df.columns),
+                None
+            )
+            if date_col:
+                df["report_date"] = pd.to_datetime(df[date_col], errors="coerce")
+            else:
+                df["report_date"] = pd.NaT
+
+            if "community_area" in df.columns:
+                df["ca"] = pd.to_numeric(df["community_area"], errors="coerce")
+            else:
+                df["ca"] = pd.NA
+
+            df = df.dropna(subset=["lat", "lon"]).copy()
+            if not df.empty:
+                return df, True, None
+
+        except Exception as exc:
+            errors.append(f"{api_url}: {exc}")
+
+    return None, False, " | ".join(errors)
+
+
+with st.spinner("Loading official Chicago 311 flooding data..."):
+    df, live, api_error = fetch_south_shore_311()
 
 if df is None or df.empty:
-    df   = FALLBACK_DF.copy()
+    df = FALLBACK_DF.copy()
     live = False
+    st.warning(
+        "Official Chicago 311 flooding data is temporarily unavailable. "
+        "No synthetic complaint locations are being displayed."
+    )
+    if api_error:
+        st.caption(f"Data service detail: {api_error}")
 
 # ── Stats strip ────────────────────────────────────────────────────────────────
 total    = len(df)
-basement = int(df["flood_type"].str.contains("Basement", case=False, na=False).sum())
-street   = int(df["flood_type"].str.contains("Street",   case=False, na=False).sum())
+basement = int(df["flood_type"].astype(str).str.contains("Basement", case=False, na=False).sum())
+street   = int(df["flood_type"].astype(str).str.contains("Street",   case=False, na=False).sum())
 
 st.markdown(f"""
 <div class="stats-strip">
   <div class="stat-item">
-    <span class="stat-number">{total:,}{"+" if not live else ""}</span>
+    <span class="stat-number">{total:,}</span>
     <span class="stat-label">South Shore 311 Flooding Complaints</span>
   </div>
   <div class="stat-item">
-    <span class="stat-number">{basement:,}{"+" if not live else ""}</span>
+    <span class="stat-number">{basement:,}</span>
     <span class="stat-label">Basement Flooding Reports</span>
   </div>
   <div class="stat-item">
-    <span class="stat-number">{street:,}{"+" if not live else ""}</span>
+    <span class="stat-number">{street:,}</span>
     <span class="stat-label">Street Flooding Reports</span>
   </div>
   <div class="stat-item">
@@ -339,13 +327,13 @@ st.markdown('<div class="content-section" id="map">', unsafe_allow_html=True)
 st.markdown('<div class="section-head">311 Water in Basement Complaints — South Side (South of 63rd St)</div>', unsafe_allow_html=True)
 st.markdown(f"""
 <div class="section-sub">
-  {"Live data from the" if live else "Representative sample from the"}
+  Official complaint records from the
   <a href="https://data.cityofchicago.org/Service-Requests/Flooding-Complaints-to-311/qrmr-m89j"
   target="_blank" style="color:#0a2240">Chicago Data Portal</a>.
   <strong style="color:{BURGUNDY}">Burgundy</strong> = basement flooding ·
   <strong style="color:{NAVY}">Navy</strong> = street flooding.
   The orange zone marks the proposed breakwater project area between 71st and 75th Street.
-  {"" if live else "<em>(Live API unavailable from this server — showing representative 311 data.)</em>"}
+  {"" if live else "<em>(City API currently unavailable — no complaint points are shown.)</em>"}
 </div>
 """, unsafe_allow_html=True)
 
@@ -397,7 +385,7 @@ folium.Rectangle(
 
 # Heatmap
 basement_pts = df[
-    df["flood_type"].str.contains("Basement", case=False, na=False)
+    df["flood_type"].astype(str).str.contains("Basement", case=False, na=False)
 ][["lat", "lon"]].values.tolist()
 if basement_pts:
     HeatMap(
@@ -418,7 +406,8 @@ for _, row in df.iterrows():
     color = flood_color(row["flood_type"])
     addr  = row.get('addr', '')
     ftype = row.get('flood_type', 'Flooding complaint')
-    rdate = str(row.get('report_date', ''))[:10]
+    raw_date = row.get('report_date', pd.NaT)
+    rdate = raw_date.strftime("%Y-%m-%d") if pd.notna(raw_date) else "Date not provided"
     lat_s = f"{row['lat']:.5f}"
     lon_s = f"{row['lon']:.5f}"
     tooltip = f"<b>{ftype}</b><br>{addr}<br>{rdate}"
