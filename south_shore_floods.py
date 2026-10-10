@@ -374,11 +374,11 @@ m = folium.Map(
 # Coordinates are intentionally presented as an approximate conceptual alignment,
 # not as surveyed engineering coordinates.
 breakwater_line = [
-    [41.76605, -87.55715],
-    [41.76585, -87.55695],
-    [41.76562, -87.55672],
-    [41.76538, -87.55648],
-    [41.76515, -87.55625],
+    [41.76605, -87.55935],
+    [41.76585, -87.55915],
+    [41.76562, -87.55892],
+    [41.76538, -87.55868],
+    [41.76515, -87.55845],
 ]
 
 folium.PolyLine(
@@ -390,7 +390,7 @@ folium.PolyLine(
     popup=folium.Popup(
         "<b>Proposed $5 million breakwater wall</b><br>"
         "Approximate conceptual alignment along the lakefront between "
-        "the 71st Street area and 73rd Place.<br><br>"
+        "East 72nd Place and East 73rd Place.<br><br>"
         "<i>Illustrative alignment based on the City's conceptual shoreline plan; "
         "not surveyed engineering coordinates.</i>",
         max_width=320,
