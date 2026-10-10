@@ -352,7 +352,7 @@ st.markdown(f"""
   target="_blank" style="color:#0a2240">Chicago Data Portal</a>.
   <strong style="color:{BURGUNDY}">Burgundy</strong> = basement flooding ·
   <strong style="color:{NAVY}">Navy</strong> = street flooding.
-  The orange zone marks the proposed breakwater project area between 71st and 75th Street.<br>  <strong>Map scope:</strong> all geocoded AAF (Water in Basement) and AAE (Water on Street) records returned by Chicago 311 for Community Area 43.
+  The orange line marks the approximate proposed $5 million breakwater wall alignment along the lakefront between the 71st Street area and 73rd Place.<br>  <strong>Map scope:</strong> all geocoded AAF (Water in Basement) and AAE (Water on Street) records returned by Chicago 311 for Community Area 43.
   {"" if live else "<em>(City API currently unavailable — no complaint points are shown.)</em>"}
 </div>
 """, unsafe_allow_html=True)
@@ -367,17 +367,34 @@ m = folium.Map(
     control_scale=True,
 )
 
-# Breakwater zone
-folium.Rectangle(
-    bounds=[[41.7655, -87.5600], [41.7490, -87.5480]],
+# Proposed $5M breakwater wall — approximate alignment shown in the
+# City's conceptual shoreline graphic, from the 71st St area toward 73rd Pl.
+# This replaces the former orange rectangular "project zone".
+#
+# Coordinates are intentionally presented as an approximate conceptual alignment,
+# not as surveyed engineering coordinates.
+breakwater_line = [
+    [41.76535, -87.55895],  # near 71st St shoreline
+    [41.76485, -87.55815],
+    [41.76410, -87.55715],
+    [41.76325, -87.55610],
+    [41.76245, -87.55505],  # toward 73rd Pl shoreline
+]
+
+folium.PolyLine(
+    locations=breakwater_line,
     color=ORANGE,
-    fill=True,
-    fill_color=ORANGE,
-    fill_opacity=0.22,
-    weight=3,
-    tooltip="⚠️ Proposed $5M breakwater project zone — 71st to 75th Street lakefront\n"
-            "This project does NOT address basement flooding.\n"
-            "No stormwater mitigation. No sewer upgrades.",
+    weight=7,
+    opacity=0.95,
+    tooltip="Proposed $5 million breakwater wall — approximate alignment",
+    popup=folium.Popup(
+        "<b>Proposed $5 million breakwater wall</b><br>"
+        "Approximate conceptual alignment along the lakefront between "
+        "the 71st Street area and 73rd Place.<br><br>"
+        "<i>Illustrative alignment based on the City's conceptual shoreline plan; "
+        "not surveyed engineering coordinates.</i>",
+        max_width=320,
+    ),
 ).add_to(m)
 
 # Heatmap
@@ -433,7 +450,7 @@ font-family:Arial,sans-serif;font-size:13px;box-shadow:2px 2px 6px rgba(0,0,0,.2
   <b>South Shore 311 Flooding</b><br><br>
   <span style="color:{BURGUNDY};font-size:18px">●</span> Basement flooding<br>
   <span style="color:{NAVY};font-size:18px">●</span> Street flooding<br>
-  <span style="color:{ORANGE};font-size:18px">■</span> Proposed breakwater zone<br>
+  <span style="color:{ORANGE};font-size:18px;font-weight:900">━</span> Proposed $5M breakwater wall<br>
   <span style="font-size:10px;color:#777">This project does not address<br>basement flooding or sewers.</span>
 </div>
 """
