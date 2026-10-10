@@ -178,7 +178,12 @@ _fallback_rows = (
     _pts(25,  41.705, 41.722, -87.608, -87.570, "Water in Basement Complaint") +
     _pts(10,  41.705, 41.722, -87.608, -87.570, "Water On Street Complaint")
 )
-FALLBACK_DF = pd.DataFrame(_fallback_rows)
+# Known real 311 complaints — hardcoded so they always appear regardless of API
+_known_real = [
+    {"lat": 41.7632, "lon": -87.5660, "ca": 43, "flood_type": "Water in Basement Complaint",
+     "addr": "2564 E 72ND PL, CHICAGO IL 60649", "report_date": "2023-08-01"},
+]
+FALLBACK_DF = pd.DataFrame(_fallback_rows + _known_real)
 
 # ── Nav ────────────────────────────────────────────────────────────────────────
 st.markdown("""
@@ -320,7 +325,6 @@ m = folium.Map(
     zoom_start=12,
     tiles="OpenStreetMap",
     control_scale=True,
-    prefer_canvas=True,
 )
 
 # Breakwater zone
