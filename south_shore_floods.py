@@ -159,15 +159,15 @@ _fallback_rows = (
     _pts(180, 41.748, 41.775, -87.586, -87.565, "Water in Basement Complaint") +
     _pts(60,  41.748, 41.775, -87.586, -87.565, "Water On Street Complaint")   +
     # South Shore lakefront residential (71st–79th St, east of Stony Island)
-    # This is the area directly adjacent to the proposed breakwater — critical zone
-    _pts(55,  41.749, 41.766, -87.562, -87.538, "Water in Basement Complaint") +
-    _pts(20,  41.749, 41.766, -87.562, -87.538, "Water On Street Complaint")   +
+    # Eastern boundary -87.552 = just west of South Shore Drive (keeps dots off beach/lake)
+    _pts(55,  41.749, 41.766, -87.562, -87.552, "Water in Basement Complaint") +
+    _pts(20,  41.749, 41.766, -87.562, -87.552, "Water On Street Complaint")   +
     # Woodlawn (ca 42) — north of South Shore
     _pts(40,  41.775, 41.793, -87.607, -87.588, "Water in Basement Complaint") +
     _pts(20,  41.775, 41.793, -87.607, -87.588, "Water On Street Complaint")   +
-    # South Chicago / East Side lakefront (75th–87th St near lake)
-    _pts(35,  41.722, 41.749, -87.562, -87.538, "Water in Basement Complaint") +
-    _pts(12,  41.722, 41.749, -87.562, -87.538, "Water On Street Complaint")   +
+    # South Chicago / East Side (75th–87th St, stays west of South Shore Dr)
+    _pts(35,  41.722, 41.749, -87.562, -87.552, "Water in Basement Complaint") +
+    _pts(12,  41.722, 41.749, -87.562, -87.552, "Water On Street Complaint")   +
     # Avalon Park / Calumet Heights (ca 45/48)
     _pts(30,  41.722, 41.748, -87.590, -87.565, "Water in Basement Complaint") +
     _pts(12,  41.722, 41.748, -87.590, -87.565, "Water On Street Complaint")   +
@@ -235,7 +235,7 @@ def fetch_south_shore_311():
                 df["addr"] = df.get("street_address", "South Shore")
                 df["report_date"] = pd.to_datetime(df.get("created_date", ""), errors="coerce")
                 df = df.dropna(subset=["lat", "lon"])
-                df = df[(df["lat"] > 41.70) & (df["lat"] < 41.780)]
+                df = df[(df["lat"] > 41.70) & (df["lat"] < 41.780) & (df["lon"] < -87.525)]
                 return df, True
     except Exception:
         pass
